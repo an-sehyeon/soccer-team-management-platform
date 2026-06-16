@@ -2,8 +2,13 @@ package com.soccer.platform.entity;
 
 import java.time.LocalDateTime;
 
+import com.soccer.platform.common.constants.ScheduleIntensityEnum;
+import com.soccer.platform.common.constants.ScheduleTypeEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -43,12 +48,13 @@ public class ScheduleEntity extends BaseEntity {
     @Column(name = "place", nullable = false, length = 30)
     private String place;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "schedule_type", nullable = false, length = 20)
-    private String scheduleType;
+    private ScheduleTypeEnum scheduleType;
 
     @Column(name = "comment", length = 255)
     private String comment;
 
     @Column(name = "intensity", length = 10)
-    private String intensity;
+    private ScheduleIntensityEnum intensity;
 }

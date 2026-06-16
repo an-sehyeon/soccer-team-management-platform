@@ -53,9 +53,8 @@ public class SecurityConfig {
 	                    .accessDeniedHandler(jwtAccessDeniedHandler)
 	           )         
 				.authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/sign-up").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .anyRequest().authenticated()
+						.requestMatchers("/api/auth/sign-up", "/api/auth/login").permitAll()
+						.anyRequest().authenticated()
                 )
 				.addFilterBefore(
 						jwtAuthenticationFilter, 
