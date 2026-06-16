@@ -2,8 +2,13 @@ package com.soccer.platform.entity;
 
 import java.time.LocalDateTime;
 
+import com.soccer.platform.common.constants.ApprovalStatusEnum;
+import com.soccer.platform.common.constants.MemberRoleEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -60,8 +65,9 @@ public class MemberEntity extends BaseEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "member_role", nullable = false, length = 20)
-    private String memberRole;
+    private MemberRoleEnum memberRole;
 
     @Column(name = "is_captain", nullable = false, columnDefinition = "TINYINT")
     private Boolean isCaptain = false;
@@ -69,6 +75,7 @@ public class MemberEntity extends BaseEntity {
     @Column(name = "is_admin", nullable = false, columnDefinition = "TINYINT")
     private Boolean isAdmin = false;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", nullable = false, length = 20)
-    private String approvalStatus = "PENDING";
+    private ApprovalStatusEnum approvalStatus;
 }
