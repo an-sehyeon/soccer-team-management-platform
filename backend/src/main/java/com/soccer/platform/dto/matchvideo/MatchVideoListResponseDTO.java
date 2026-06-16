@@ -17,6 +17,7 @@ import lombok.Getter;
 @Builder
 public class MatchVideoListResponseDTO {
     private Integer matchVideoId;
+    private Integer durationSec;
     private String title;
     private LocalDateTime gameDate;
     private String place;
@@ -32,6 +33,7 @@ public class MatchVideoListResponseDTO {
     public static MatchVideoListResponseDTO from(GameVideoUploadEntity matchVideo) {
         return MatchVideoListResponseDTO.builder()
                 .matchVideoId(matchVideo.getId())
+                .durationSec(matchVideo.getDurationSec())
                 .title(matchVideo.getTitle())
                 .gameDate(matchVideo.getGameDate())
                 .place(matchVideo.getPlace())

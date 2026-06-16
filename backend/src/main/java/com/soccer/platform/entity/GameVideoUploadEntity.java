@@ -42,6 +42,9 @@ public class GameVideoUploadEntity extends BaseEntity {
 
     @Column(name = "url", nullable = false, length = 255)
     private String url;
+    
+    @Column(name = "duration_sec", nullable = false)
+    private Integer durationSec;
 
     @Column(name = "title", nullable = false, length = 255)
     private String title;

@@ -19,6 +19,7 @@ public class MatchVideoDetailResponseDTO {
 
     private Integer matchVideoId;
     private String url;
+    private Integer durationSec;
     private String title;
     private LocalDateTime gameDate;
     private String place;
@@ -35,6 +36,7 @@ public class MatchVideoDetailResponseDTO {
         return MatchVideoDetailResponseDTO.builder()
                 .matchVideoId(matchVideo.getId())
                 .url(matchVideo.getUrl())
+                .durationSec(matchVideo.getDurationSec())
                 .title(matchVideo.getTitle())
                 .gameDate(matchVideo.getGameDate())
                 .place(matchVideo.getPlace())
