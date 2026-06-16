@@ -58,14 +58,19 @@ public enum ErrorCode {
 	INVALID_SCHEDULE_DATETIME(HttpStatus.BAD_REQUEST, "스케줄 날짜와 시간이 올바르지 않습니다."),
 	REQUIRED_SCHEDULE_PLACE(HttpStatus.BAD_REQUEST, "스케줄 장소는 필수입니다."),
 	
-	// Notice
+	// 공지사항
 	NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다."),
 	NOTICE_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "공지사항 등록 권한이 없습니다."),
 	NOTICE_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "공지사항 수정 권한이 없습니다."),
 	NOTICE_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "공지사항 삭제 권한이 없습니다."),
 	NOTICE_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "공지사항 제목은 필수입니다."),
 	NOTICE_CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "공지사항 내용은 필수입니다."),
-	NOTICE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "공지사항 제목은 255자를 초과할 수 없습니다.");
+	NOTICE_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "공지사항 제목은 255자를 초과할 수 없습니다."),
+	
+	// 경기 영상 업로드
+	MATCH_VIDEO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "경기 영상에 접근할 권한이 없습니다."),
+	MATCH_VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "경기 영상을 찾을 수 없습니다."),
+	INVALID_MATCH_VIDEO_REQUEST(HttpStatus.BAD_REQUEST, "경기 영상 요청값이 올바르지 않습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
