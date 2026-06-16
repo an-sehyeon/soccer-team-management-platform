@@ -2,6 +2,9 @@ package com.soccer.platform.entity;
 
 import java.time.LocalDateTime;
 
+import com.soccer.platform.common.constants.MatchResultEnum;
+import com.soccer.platform.common.constants.VideoUploadStatusEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -56,8 +59,8 @@ public class GameVideoUploadEntity extends BaseEntity {
     private Integer awayScore;
 
     @Column(name = "match_result", nullable = false, length = 5)
-    private String matchResult;
+    private MatchResultEnum matchResult;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status = "UPLOADING";
+    private VideoUploadStatusEnum status = VideoUploadStatusEnum.UPLOADING;
 }
