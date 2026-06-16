@@ -70,7 +70,15 @@ public enum ErrorCode {
 	// 경기 영상 업로드
 	MATCH_VIDEO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "경기 영상에 접근할 권한이 없습니다."),
 	MATCH_VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "경기 영상을 찾을 수 없습니다."),
-	INVALID_MATCH_VIDEO_REQUEST(HttpStatus.BAD_REQUEST, "경기 영상 요청값이 올바르지 않습니다.");
+	INVALID_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "영상 길이는 1초 이상이어야 합니다."),
+	INVALID_MATCH_VIDEO_REQUEST(HttpStatus.BAD_REQUEST, "경기 영상 요청값이 올바르지 않습니다."),
+	
+	// 팀 분석 클립
+	TEAM_ANALYSIS_CLIP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "팀 분석 클립 접근 권한이 없습니다."),
+	TEAM_ANALYSIS_CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "팀 분석 클립을 찾을 수 없습니다."),
+	INVALID_TEAM_ANALYSIS_CLIP_REQUEST(HttpStatus.BAD_REQUEST, "팀 분석 클립 요청 값이 올바르지 않습니다."),
+	INVALID_CLIP_TIME_RANGE(HttpStatus.BAD_REQUEST, "클립 시작 시간과 종료 시간이 올바르지 않습니다."),
+	CLIP_TIME_EXCEEDS_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "클립 시간이 원본 영상 길이를 초과했습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;

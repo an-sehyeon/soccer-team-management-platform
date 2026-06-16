@@ -18,6 +18,7 @@ import lombok.Setter;
 public class UpdateMatchVideoRequestDTO {
 
 	private String url;
+	private Integer durationSec;
 	private String title;
 	private LocalDateTime  gameDate;
 	private String place;
