@@ -48,7 +48,15 @@ public enum ErrorCode {
 	// 가입 승인
     EMPTY_MEMBER_SELECTION(HttpStatus.BAD_REQUEST, "승인 처리할 회원을 선택해야 합니다."),
 	INVALID_APPROVAL_STATUS(HttpStatus.BAD_REQUEST, "변경할 수 없는 승인 상태입니다."),
-	CANNOT_APPROVE_ADMIN(HttpStatus.BAD_REQUEST, "관리자 계정의 승인 상태는 이 API에서 변경할 수 없습니다.");
+	CANNOT_APPROVE_ADMIN(HttpStatus.BAD_REQUEST, "관리자 계정의 승인 상태는 이 API에서 변경할 수 없습니다."),
+	
+	// 스케줄
+	SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스케줄입니다."),
+	SCHEDULE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "스케줄을 관리할 권한이 없습니다."),
+	INVALID_SCHEDULE_TYPE(HttpStatus.BAD_REQUEST, "올바르지 않은 스케줄 유형입니다."),
+	INVALID_SCHEDULE_INTENSITY(HttpStatus.BAD_REQUEST, "올바르지 않은 훈련 강도입니다."),
+	INVALID_SCHEDULE_DATETIME(HttpStatus.BAD_REQUEST, "스케줄 날짜와 시간이 올바르지 않습니다."),
+	REQUIRED_SCHEDULE_PLACE(HttpStatus.BAD_REQUEST, "스케줄 장소는 필수입니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
