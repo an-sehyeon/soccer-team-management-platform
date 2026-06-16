@@ -12,7 +12,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * 공지사항 엔티티
@@ -23,7 +22,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "notice")
 @Getter
-@Setter
 @NoArgsConstructor
 public class NoticeEntity extends BaseEntity {
 
@@ -45,4 +43,20 @@ public class NoticeEntity extends BaseEntity {
 
     @Column(name = "is_important", nullable = false, columnDefinition = "TINYINT")
     private Boolean isImportant = false;
+    
+    
+    // 공지사항 생성
+    public NoticeEntity(MemberEntity member, String title, String content, Boolean isImportant) {
+        this.member = member;
+        this.title = title;
+        this.content = content;
+        this.isImportant = isImportant != null && isImportant;
+    }
+
+    // 공지사항 수정
+    public void updateNotice(String title, String content, Boolean isImportant) {
+        this.title = title;
+        this.content = content;
+        this.isImportant = isImportant != null && isImportant;
+    }
 }
