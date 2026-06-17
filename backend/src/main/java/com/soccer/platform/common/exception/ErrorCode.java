@@ -72,6 +72,7 @@ public enum ErrorCode {
 	MATCH_VIDEO_NOT_FOUND(HttpStatus.NOT_FOUND, "경기 영상을 찾을 수 없습니다."),
 	INVALID_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "영상 길이는 1초 이상이어야 합니다."),
 	INVALID_MATCH_VIDEO_REQUEST(HttpStatus.BAD_REQUEST, "경기 영상 요청값이 올바르지 않습니다."),
+	MATCH_VIDEO_DURATION_NOT_READY(HttpStatus.BAD_REQUEST, "원본 영상 길이 정보가 준비되지 않았습니다."),
 	
 	// 팀 분석 클립
 	TEAM_ANALYSIS_CLIP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "팀 분석 클립 접근 권한이 없습니다."),
@@ -86,7 +87,11 @@ public enum ErrorCode {
 	INVALID_DRAWING_TIME_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간 범위가 올바르지 않습니다."),
 	DRAWING_TIME_OUT_OF_CLIP_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간은 팀 분석 클립 시간 범위 안에 있어야 합니다."),
 	EMPTY_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터는 비어 있을 수 없습니다."),
-	INVALID_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터 형식이 올바르지 않습니다.");
+	INVALID_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터 형식이 올바르지 않습니다."),
+	
+	// 선수 분석 클립
+	PLAYER_ANALYSIS_CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 개인 분석 클립을 찾을 수 없습니다."),
+	INVALID_PLAYER_ROLE(HttpStatus.BAD_REQUEST, "대상 선수 역할이 올바르지 않습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
