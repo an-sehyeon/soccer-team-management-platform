@@ -78,7 +78,15 @@ public enum ErrorCode {
 	TEAM_ANALYSIS_CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "팀 분석 클립을 찾을 수 없습니다."),
 	INVALID_TEAM_ANALYSIS_CLIP_REQUEST(HttpStatus.BAD_REQUEST, "팀 분석 클립 요청 값이 올바르지 않습니다."),
 	INVALID_CLIP_TIME_RANGE(HttpStatus.BAD_REQUEST, "클립 시작 시간과 종료 시간이 올바르지 않습니다."),
-	CLIP_TIME_EXCEEDS_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "클립 시간이 원본 영상 길이를 초과했습니다.");
+	CLIP_TIME_EXCEEDS_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "클립 시간이 원본 영상 길이를 초과했습니다."),
+	
+	// 팀 분석 클립 드로잉
+	TEAM_ANALYSIS_CLIP_DRAWING_NOT_FOUND(HttpStatus.NOT_FOUND, "팀 분석 클립 드로잉을 찾을 수 없습니다."),
+	TEAM_ANALYSIS_CLIP_DRAWING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "팀 분석 클립 드로잉 권한이 없습니다."),
+	INVALID_DRAWING_TIME_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간 범위가 올바르지 않습니다."),
+	DRAWING_TIME_OUT_OF_CLIP_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간은 팀 분석 클립 시간 범위 안에 있어야 합니다."),
+	EMPTY_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터는 비어 있을 수 없습니다."),
+	INVALID_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터 형식이 올바르지 않습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
