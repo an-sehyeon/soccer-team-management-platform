@@ -1,5 +1,8 @@
 package com.soccer.platform.entity;
 
+import com.soccer.platform.common.constants.PlayerClipTypeEnum;
+import com.soccer.platform.common.constants.VideoUploadStatusEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -44,7 +47,7 @@ public class PlayerVideoClipEntity extends BaseEntity {
     private MemberEntity player;
 
     @Column(name = "clip_type", nullable = false, length = 30)
-    private String clipType;
+    private PlayerClipTypeEnum clipType;
 
     @Column(name = "title", nullable = false, length = 255)
     private String title;
@@ -62,5 +65,5 @@ public class PlayerVideoClipEntity extends BaseEntity {
     private String url;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status = "UPLOADING";
+    private VideoUploadStatusEnum status = VideoUploadStatusEnum.UPLOADING;
 }
