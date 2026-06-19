@@ -51,6 +51,14 @@ public enum ErrorCode {
 	INVALID_APPROVAL_STATUS(HttpStatus.BAD_REQUEST, "변경할 수 없는 승인 상태입니다."),
 	CANNOT_APPROVE_ADMIN(HttpStatus.BAD_REQUEST, "관리자 계정의 승인 상태는 이 API에서 변경할 수 없습니다."),
 	
+	// 선수 기록
+	PLAYER_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 기록을 찾을 수 없습니다."),
+	PLAYER_RECORD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "선수 기록에 접근할 권한이 없습니다."),
+	PLAYER_RECORD_MANAGE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "선수 기록 관리 권한이 없습니다."),
+	DUPLICATE_PLAYER_RECORD(HttpStatus.CONFLICT, "이미 해당 경기의 선수 기록이 존재합니다."),
+	INVALID_PLAYER_RECORD_PLAYER(HttpStatus.BAD_REQUEST, "선수 기록 대상은 선수 역할만 가능합니다."),
+	INVALID_PLAYER_RECORD_VALUE(HttpStatus.BAD_REQUEST, "선수 기록 값이 올바르지 않습니다."),
+	
 	// 스케줄
 	SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스케줄입니다."),
 	SCHEDULE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "스케줄을 관리할 권한이 없습니다."),
