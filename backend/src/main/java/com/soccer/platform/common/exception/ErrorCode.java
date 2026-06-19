@@ -91,7 +91,14 @@ public enum ErrorCode {
 	
 	// 선수 분석 클립
 	PLAYER_ANALYSIS_CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 개인 분석 클립을 찾을 수 없습니다."),
-	INVALID_PLAYER_ROLE(HttpStatus.BAD_REQUEST, "대상 선수 역할이 올바르지 않습니다.");
+	INVALID_PLAYER_ROLE(HttpStatus.BAD_REQUEST, "대상 선수 역할이 올바르지 않습니다."),
+	
+	// 선수 개인 분석 클립 드로잉
+	PLAYER_CLIP_DRAWING_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 개인 분석 클립 드로잉을 찾을 수 없습니다."),
+	PLAYER_CLIP_DRAWING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 선수 개인 분석 클립 드로잉에 접근할 권한이 없습니다."),
+	PLAYER_CLIP_DRAWING_MANAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "선수 개인 분석 클립 드로잉을 등록하거나 수정할 권한이 없습니다."),
+	PLAYER_CLIP_DRAWING_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "선수 개인 분석 클립 드로잉을 삭제할 권한이 없습니다."),
+	DRAWING_DATA_REQUIRED(HttpStatus.BAD_REQUEST, "드로잉 데이터는 필수입니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;

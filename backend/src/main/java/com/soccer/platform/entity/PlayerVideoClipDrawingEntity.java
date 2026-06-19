@@ -1,5 +1,7 @@
 package com.soccer.platform.entity;
 
+import com.soccer.platform.common.constants.DrawingTypeEnum;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -40,7 +42,7 @@ public class PlayerVideoClipDrawingEntity extends BaseEntity {
     private MemberEntity member;
 
     @Column(name = "drawing_type", nullable = false, length = 20)
-    private String drawingType;
+    private DrawingTypeEnum drawingType;
 
     @Column(name = "start_time_sec", nullable = false)
     private Integer startTimeSec;
