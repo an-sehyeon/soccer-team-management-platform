@@ -46,6 +46,8 @@ public class PlayerAnalysisClipService {
     private final PlayerVideoClipRepository playerVideoClipRepository;
     private final GameVideoUploadRepository gameVideoUploadRepository;
     private final MemberRepository memberRepository;
+    private final PlayerAnalysisClipViewService playerAnalysisClipViewService;
+
 
 
     /*
@@ -170,7 +172,7 @@ public class PlayerAnalysisClipService {
     }
 
     // 선수 본인 개인 분석 클립 상세 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public PlayerAnalysisClipDetailResponseDTO findMyPlayerAnalysisClipDetail(
             Integer playerClipId,
             CustomUserPrincipal principal
@@ -185,6 +187,8 @@ public class PlayerAnalysisClipService {
 
         checkMatchVideoIsNotDeleted(playerVideoClip.getGameVideoUpload());
 
+        playerAnalysisClipViewService.recordViewIfPlayer(playerVideoClip, principal);
+        
         return toPlayerAnalysisClipDetailResponseDTO(playerVideoClip);
     }
 

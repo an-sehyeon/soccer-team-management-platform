@@ -14,7 +14,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * 선수 개인 분석 클립 조회 이력 엔티티
@@ -33,7 +32,6 @@ import lombok.Setter;
     }
 )
 @Getter
-@Setter
 @NoArgsConstructor
 public class PlayerVideoClipViewEntity extends BaseEntity {
 
@@ -57,5 +55,28 @@ public class PlayerVideoClipViewEntity extends BaseEntity {
     private LocalDateTime lastViewedAt;
 
     @Column(name = "view_count", nullable = false)
-    private Integer viewCount = 0;
+    private Integer viewCount;
+    
+    // 최초 조회 기록 생성
+    public static PlayerVideoClipViewEntity createFirstView(
+    		PlayerVideoClipEntity playerVideoClip,
+            MemberEntity member,
+            LocalDateTime viewedAt
+    ) {
+    	PlayerVideoClipViewEntity view = new PlayerVideoClipViewEntity();
+        view.playerVideoClip = playerVideoClip;
+        view.member = member;
+        view.firstViewedAt = viewedAt;
+        view.lastViewedAt = viewedAt;
+        view.viewCount = 1;
+        view.setIsDeleted(false);
+        return view;
+    }
+    
+    // 재조회 기록 갱신
+    public void increaseViewCount(LocalDateTime viewedAt) {
+        this.lastViewedAt = viewedAt;
+        this.viewCount = this.viewCount + 1;
+        this.setIsDeleted(false);
+    }
 }
