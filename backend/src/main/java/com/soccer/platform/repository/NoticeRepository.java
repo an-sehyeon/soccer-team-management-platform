@@ -25,4 +25,7 @@ public interface NoticeRepository extends JpaRepository<NoticeEntity, Integer> {
     // 삭제되지 않은 중요 공지사항 목록 조회
     // importantOnly=true 요청일 때 사용한다.
     Page<NoticeEntity> findByIsDeletedFalseAndIsImportantTrue(Pageable pageable);
+    
+
+    Page<NoticeEntity> findByIsImportantTrueAndIsDeletedFalse(Pageable pageable);
 }

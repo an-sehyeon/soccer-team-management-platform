@@ -4,7 +4,8 @@ import com.soccer.platform.dto.schedule.CreateScheduleRequestDTO;
 import com.soccer.platform.dto.schedule.ScheduleResponseDTO;
 import com.soccer.platform.dto.schedule.UpdateScheduleRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.ScheduleService;
+import com.soccer.platform.service.schedule.ScheduleService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -48,21 +49,18 @@ public class ScheduleController {
      */
     @GetMapping("/schedules")
     public ResponseEntity<List<ScheduleResponseDTO>> findSchedules(
+    		@AuthenticationPrincipal CustomUserPrincipal principal,
             @RequestParam(name = "startDateTime", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime startDateTime,
+    		LocalDateTime startDate,
 
             @RequestParam(name = "endDateTime", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime endDateTime
+    		LocalDateTime endDate
     ) {
         List<ScheduleResponseDTO> schedules;
-
-        if (startDateTime == null && endDateTime == null) {
-            schedules = scheduleService.findSchedules();
-        } else {
-            schedules = scheduleService.findSchedulesBetween(startDateTime, endDateTime);
-        }
+        
+        schedules = scheduleService.findSchedules(principal, startDate, endDate);
 
         return ResponseEntity.ok(schedules);
     }
@@ -70,9 +68,10 @@ public class ScheduleController {
     // 스케줄 상세 조회
     @GetMapping("/schedules/{scheduleId}")
     public ResponseEntity<ScheduleResponseDTO> findSchedule(
+    		@AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable("scheduleId") Integer scheduleId
     ) {
-        ScheduleResponseDTO response = scheduleService.findSchedule(scheduleId);
+        ScheduleResponseDTO response = scheduleService.findScheduleDetail(principal,scheduleId);
 
         return ResponseEntity.ok(response);
     }
@@ -81,10 +80,14 @@ public class ScheduleController {
     @PostMapping("/coach/schedules")
     public ResponseEntity<ScheduleResponseDTO> createSchedule(
             @RequestBody CreateScheduleRequestDTO request,
-            @AuthenticationPrincipal CustomUserPrincipal currentUser
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-
-        ScheduleResponseDTO response = scheduleService.createSchedule(request, currentUser);
+    	System.out.println("-------------------- scheduleDatetime : " + request.getScheduleDatetime());
+    	System.out.println("-------------------- place : " + request.getPlace());
+    	System.out.println("-------------------- scheduleType : " + request.getScheduleType());
+    	System.out.println("-------------------- comment : " + request.getComment());
+    	System.out.println("-------------------- intensity : " + request.getIntensity());
+        ScheduleResponseDTO response = scheduleService.createSchedule(principal, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -94,9 +97,9 @@ public class ScheduleController {
     public ResponseEntity<ScheduleResponseDTO> updateSchedule(
             @PathVariable("scheduleId") Integer scheduleId,
             @RequestBody UpdateScheduleRequestDTO request,
-            @AuthenticationPrincipal CustomUserPrincipal currentUser
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        ScheduleResponseDTO response = scheduleService.updateSchedule(scheduleId, request, currentUser);
+        ScheduleResponseDTO response = scheduleService.updateSchedule(principal, scheduleId, request);
 
         return ResponseEntity.ok(response);
     }
@@ -105,9 +108,9 @@ public class ScheduleController {
     @DeleteMapping("/coach/schedules/{scheduleId}")
     public ResponseEntity<Void> deleteSchedule(
             @PathVariable("scheduleId") Integer scheduleId,
-            @AuthenticationPrincipal CustomUserPrincipal currentUser
+            @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        scheduleService.deleteSchedule(scheduleId, currentUser);
+        scheduleService.deleteSchedule(principal, scheduleId);
 
         return ResponseEntity.noContent().build();
     }

@@ -17,7 +17,7 @@ import com.soccer.platform.dto.notice.NoticeDetailResponseDTO;
 import com.soccer.platform.dto.notice.NoticePageResponseDTO;
 import com.soccer.platform.dto.notice.UpdateNoticeRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.NoticeService;
+import com.soccer.platform.service.notice.NoticeService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,11 +38,13 @@ public class NoticeController {
      */
     @GetMapping("/api/notices")
     public ResponseEntity<NoticePageResponseDTO> findNoticePage(
+    	@AuthenticationPrincipal CustomUserPrincipal principal,
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "10") int size,
         @RequestParam(name = "importantOnly", defaultValue = "false") boolean importantOnly
     ) {
-        NoticePageResponseDTO response = noticeService.findNoticePage(
+        NoticePageResponseDTO response = noticeService.findNotices(
+        	principal,
             page,
             size,
             importantOnly
@@ -58,9 +60,10 @@ public class NoticeController {
      */
     @GetMapping("/api/notices/{noticeId}")
     public ResponseEntity<NoticeDetailResponseDTO> findNoticeDetail(
+    	@AuthenticationPrincipal CustomUserPrincipal principal,	
         @PathVariable(name = "noticeId") Integer noticeId
     ) {
-        NoticeDetailResponseDTO response = noticeService.findNoticeDetail(noticeId);
+        NoticeDetailResponseDTO response = noticeService.findNoticeDetail(principal, noticeId);
 
         return ResponseEntity.ok(response);
     }

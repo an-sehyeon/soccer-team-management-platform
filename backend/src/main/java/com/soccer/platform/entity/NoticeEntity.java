@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * 공지사항 엔티티
@@ -22,6 +23,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "notice")
 @Getter
+@Setter
 @NoArgsConstructor
 public class NoticeEntity extends BaseEntity {
 
