@@ -32,6 +32,14 @@ public interface PlayerRecordRepository extends JpaRepository<PlayerRecordEntity
             MemberEntity player,
             Integer recordId
     );
+    
+    // 선수 기록 수정 시 중복 기록이 있는지 확인
+    // 같은 경기 영상 + 같은 선수 + 삭제되지 않은 기록 + 현재 수정 중인 기록은 제외
+    boolean existsByGameVideoUploadAndPlayerAndIdNotAndIsDeletedFalse(
+            GameVideoUploadEntity gameVideoUpload,
+            MemberEntity player,
+            Integer id
+    );
 
     // 관리용 선수 기록 전체 목록 조회
     Page<PlayerRecordEntity> findByIsDeletedFalse(Pageable pageable);
@@ -55,4 +63,5 @@ public interface PlayerRecordRepository extends JpaRepository<PlayerRecordEntity
             MemberEntity player,
             Pageable pageable
     );
+    
 }

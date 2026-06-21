@@ -16,7 +16,7 @@ import com.soccer.platform.dto.auth.MemberApprovalResponseDTO;
 import com.soccer.platform.dto.auth.PendingMemberResponseDTO;
 import com.soccer.platform.dto.auth.BulkMemberApprovalRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.MemberAuthService;
+import com.soccer.platform.service.memberauth.MemberAuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

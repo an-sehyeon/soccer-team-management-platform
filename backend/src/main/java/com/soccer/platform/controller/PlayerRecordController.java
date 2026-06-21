@@ -18,7 +18,7 @@ import com.soccer.platform.dto.playerrecord.PlayerRecordDetailResponseDTO;
 import com.soccer.platform.dto.playerrecord.PlayerRecordPageResponseDTO;
 import com.soccer.platform.dto.playerrecord.UpdatePlayerRecordRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.PlayerRecordService;
+import com.soccer.platform.service.playerrecord.PlayerRecordService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,19 +46,19 @@ public class PlayerRecordController {
 
     // 관리용 선수 기록 목록 조회
     @GetMapping("/api/management/player-records")
-    public ResponseEntity<PlayerRecordPageResponseDTO> findManagementPlayerRecords(
+    public ResponseEntity<PlayerRecordPageResponseDTO> findPlayerRecordsForManagement(
             @AuthenticationPrincipal CustomUserPrincipal principal,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "20") Integer size,
             @RequestParam(name = "uploadId", required = false) Integer uploadId,
-            @RequestParam(name = "playerId", required = false) Integer playerId,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size
+            @RequestParam(name = "playerId", required = false) Integer playerId
     ) {
-        PlayerRecordPageResponseDTO response = playerRecordService.findManagementPlayerRecords(
+        PlayerRecordPageResponseDTO response = playerRecordService.findPlayerRecordsForManagement(
                 principal,
-                uploadId,
-                playerId,
                 page,
-                size
+                size,
+                uploadId,
+                playerId
         );
 
         return ResponseEntity.ok(response);
@@ -70,7 +70,7 @@ public class PlayerRecordController {
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable("recordId") Integer recordId
     ) {
-        PlayerRecordDetailResponseDTO response = playerRecordService.findManagementPlayerRecordDetail(
+        PlayerRecordDetailResponseDTO response = playerRecordService.findPlayerRecordDetailForManagement(
                 principal,
                 recordId
         );

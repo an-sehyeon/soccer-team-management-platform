@@ -22,7 +22,7 @@ import com.soccer.platform.dto.playerclip.PlayerAnalysisClipDetailResponseDTO;
 import com.soccer.platform.dto.playerclip.PlayerAnalysisClipPageResponseDTO;
 import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.PlayerAnalysisClipService;
+import com.soccer.platform.service.playerclip.PlayerAnalysisClipService;
 
 import lombok.RequiredArgsConstructor;
 

@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 // 선수 기록 Entity
 
@@ -39,6 +40,7 @@ import lombok.NoArgsConstructor;
     }
 )
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlayerRecordEntity extends BaseEntity {
 

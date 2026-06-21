@@ -5,6 +5,7 @@ import com.soccer.platform.common.constants.ScheduleTypeEnum;
 import com.soccer.platform.entity.ScheduleEntity;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
  * 지도자, 선수, 분석관이 스케줄을 조회할 때 공통으로 사용한다.
  */
 @Getter
+@Setter
 @Builder
 public class ScheduleResponseDTO {
 
