@@ -15,7 +15,7 @@ import com.soccer.platform.dto.auth.MemberMeResponseDTO;
 import com.soccer.platform.dto.auth.SignUpRequestDTO;
 import com.soccer.platform.dto.auth.SignUpResponseDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.MemberAuthService;
+import com.soccer.platform.service.memberauth.MemberAuthService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
