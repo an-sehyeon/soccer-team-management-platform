@@ -19,7 +19,7 @@ import com.soccer.platform.dto.teamclipdrawing.CreateTeamAnalysisClipDrawingResp
 import com.soccer.platform.dto.teamclipdrawing.TeamAnalysisClipDrawingResponseDTO;
 import com.soccer.platform.dto.teamclipdrawing.UpdateTeamAnalysisClipDrawingRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.TeamAnalysisClipDrawingService;
+import com.soccer.platform.service.teamclipdrawing.TeamAnalysisClipDrawingService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

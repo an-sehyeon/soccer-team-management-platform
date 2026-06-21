@@ -19,7 +19,7 @@ import com.soccer.platform.dto.playerclipdrawing.CreatePlayerClipDrawingResponse
 import com.soccer.platform.dto.playerclipdrawing.PlayerClipDrawingResponseDTO;
 import com.soccer.platform.dto.playerclipdrawing.UpdatePlayerClipDrawingRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.PlayerClipDrawingService;
+import com.soccer.platform.service.playerclipdrawing.PlayerClipDrawingService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
