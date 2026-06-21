@@ -63,12 +63,14 @@ public enum ErrorCode {
 	SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스케줄입니다."),
 	SCHEDULE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "스케줄을 관리할 권한이 없습니다."),
 	INVALID_SCHEDULE_TYPE(HttpStatus.BAD_REQUEST, "올바르지 않은 스케줄 유형입니다."),
+	INVALID_SCHEDULE_DATE_RANGE(HttpStatus.BAD_REQUEST, "스케줄 조회 기간이 올바르지 않습니다."),
 	INVALID_SCHEDULE_INTENSITY(HttpStatus.BAD_REQUEST, "올바르지 않은 훈련 강도입니다."),
 	INVALID_SCHEDULE_DATETIME(HttpStatus.BAD_REQUEST, "스케줄 날짜와 시간이 올바르지 않습니다."),
 	REQUIRED_SCHEDULE_PLACE(HttpStatus.BAD_REQUEST, "스케줄 장소는 필수입니다."),
 	
 	// 공지사항
 	NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다."),
+	INVALID_NOTICE_REQUEST(HttpStatus.NOT_FOUND, "유효하지 않은 공지사항 형식입니다."),
 	NOTICE_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "공지사항 등록 권한이 없습니다."),
 	NOTICE_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "공지사항 수정 권한이 없습니다."),
 	NOTICE_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "공지사항 삭제 권한이 없습니다."),
