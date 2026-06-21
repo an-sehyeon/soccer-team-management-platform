@@ -17,7 +17,7 @@ import com.soccer.platform.dto.teamanalysisclip.TeamAnalysisClipDetailResponseDT
 import com.soccer.platform.dto.teamanalysisclip.TeamAnalysisClipPageResponseDTO;
 import com.soccer.platform.dto.teamanalysisclip.UpdateTeamAnalysisClipRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.TeamAnalysisClipService;
+import com.soccer.platform.service.teamclip.TeamAnalysisClipService;
 
 import lombok.RequiredArgsConstructor;
 

@@ -17,7 +17,7 @@ import com.soccer.platform.dto.matchvideo.MatchVideoDetailResponseDTO;
 import com.soccer.platform.dto.matchvideo.MatchVideoPageResponseDTO;
 import com.soccer.platform.dto.matchvideo.UpdateMatchVideoRequestDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
-import com.soccer.platform.service.MatchVideoService;
+import com.soccer.platform.service.matchvideo.MatchVideoService;
 
 import lombok.RequiredArgsConstructor;
 
