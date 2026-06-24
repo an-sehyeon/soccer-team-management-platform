@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -55,7 +56,7 @@ public class ScheduleService {
 
         ScheduleEntity schedule = new ScheduleEntity();
         schedule.setMember(writer);
-        schedule.setScheduleDatetime(request.getScheduleDatetime());
+        schedule.setScheduleDatetime(request.getScheduleDateTime());
         schedule.setPlace(request.getPlace());
         schedule.setScheduleType(request.getScheduleType());
         schedule.setIntensity(request.getIntensity());
@@ -71,9 +72,10 @@ public class ScheduleService {
     @Transactional(readOnly = true)
     public List<ScheduleResponseDTO> findSchedules(
             CustomUserPrincipal principal,
-            LocalDateTime startDate,
-            LocalDateTime endDate
+            LocalDate startDate,
+            LocalDate endDate
     ) {
+    	System.out.println("======서비스 접근 =========");
         permissionValidator.requireAuthenticatedServiceUser(
                 principal,
                 ErrorCode.SCHEDULE_ACCESS_DENIED
@@ -82,11 +84,11 @@ public class ScheduleService {
         scheduleValidator.validateDateRange(startDate, endDate);
 
         // 스케줄 조회 기간 변환
-        LocalDateTime startDateTime = startDate;
-        LocalDateTime endDateTime = endDate;
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
 
         List<ScheduleEntity> schedules = scheduleRepository
-                .findByScheduleDatetimeBetweenAndIsDeletedFalseOrderByScheduleDatetimeAsc(
+                .findByScheduleDatetimeGreaterThanEqualAndScheduleDatetimeLessThanAndIsDeletedFalseOrderByScheduleDatetimeAsc(
                         startDateTime,
                         endDateTime
                 );
@@ -127,7 +129,7 @@ public class ScheduleService {
 
         ScheduleEntity schedule = findActiveSchedule(scheduleId);
 
-        schedule.setScheduleDatetime(request.getScheduleDatetime());
+        schedule.setScheduleDatetime(request.getScheduleDateTime());
         schedule.setPlace(request.getPlace());
         schedule.setScheduleType(request.getScheduleType());
         schedule.setIntensity(request.getIntensity());

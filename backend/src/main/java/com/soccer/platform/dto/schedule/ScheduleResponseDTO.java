@@ -22,7 +22,7 @@ public class ScheduleResponseDTO {
     private Integer scheduleId;
     private Integer writerMemberId;
     private String writerName;
-    private LocalDateTime scheduleDatetime;
+    private LocalDateTime scheduleDateTime;
     private String place;
     private ScheduleTypeEnum scheduleType;
     private String comment;
@@ -36,7 +36,7 @@ public class ScheduleResponseDTO {
                 .scheduleId(schedule.getId())
                 .writerMemberId(schedule.getMember().getId())
                 .writerName(schedule.getMember().getName())
-                .scheduleDatetime(schedule.getScheduleDatetime())
+                .scheduleDateTime(schedule.getScheduleDatetime())
                 .place(schedule.getPlace())
                 .scheduleType(schedule.getScheduleType())
                 .comment(schedule.getComment())

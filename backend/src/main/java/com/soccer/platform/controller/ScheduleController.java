@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 /*
@@ -40,28 +40,31 @@ public class ScheduleController {
     /*
      * 스케줄 목록 조회
      *
-     * startDateTime과 endDateTime이 없으면 전체 스케줄을 조회한다.
+     * startDate와 endDate가 없으면 전체 스케줄을 조회한다.
      * 둘 다 있으면 해당 기간의 스케줄만 조회한다.
      *
      * 요청 예시
      * - GET /api/schedules
-     * - GET /api/schedules?startDateTime=2026-06-01T00:00:00&endDateTime=2026-07-01T00:00:00
+     * - GET /api/schedules?startDate=2026-06-01&endDate=2026-06-30
+     *
+     * 주의사항
+     * - startDate와 endDate는 둘 다 없거나 둘 다 있어야 한다.
+     * - 둘 중 하나만 있으면 올바르지 않은 조회 기간으로 처리한다.
      */
     @GetMapping("/schedules")
-    public ResponseEntity<List<ScheduleResponseDTO>> findSchedules(
-    		@AuthenticationPrincipal CustomUserPrincipal principal,
-            @RequestParam(name = "startDateTime", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    		LocalDateTime startDate,
-
-            @RequestParam(name = "endDateTime", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    		LocalDateTime endDate
+    public ResponseEntity<List<ScheduleResponseDTO>> getSchedules(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @RequestParam(name = "startDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate startDate,
+            @RequestParam(name = "endDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDate
     ) {
-        List<ScheduleResponseDTO> schedules;
-        
-        schedules = scheduleService.findSchedules(principal, startDate, endDate);
-
+    	System.out.println("=========컨트롤러 접근======");
+        List<ScheduleResponseDTO> schedules =
+                scheduleService.findSchedules(principal, startDate, endDate);
+        System.out.println("=========컨트롤러 schedules ====== : " + schedules);
         return ResponseEntity.ok(schedules);
     }
 
@@ -82,7 +85,7 @@ public class ScheduleController {
             @RequestBody CreateScheduleRequestDTO request,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-    	System.out.println("-------------------- scheduleDatetime : " + request.getScheduleDatetime());
+    	System.out.println("-------------------- scheduleDatetime : " + request.getScheduleDateTime());
     	System.out.println("-------------------- place : " + request.getPlace());
     	System.out.println("-------------------- scheduleType : " + request.getScheduleType());
     	System.out.println("-------------------- comment : " + request.getComment());

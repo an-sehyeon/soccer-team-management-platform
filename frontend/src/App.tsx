@@ -12,6 +12,7 @@ import { RoleRoute } from "./routes/RoleRoute";
 import { ROUTES } from "./constants/routes";
 import { AdminMemberApprovalPage } from "./pages/AdminMemberApprovalPage";
 import { AdminOnlyRoute } from "./routes/AdminOnlyRoute";
+import SchedulePage from "./pages/SchedulePage";
 
 function App() {
   return (
@@ -74,6 +75,15 @@ function App() {
         element={
           <ProtectedRoute>
             <MobileHomePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.SCHEDULE}
+        element={
+          <ProtectedRoute>
+            <SchedulePage />
           </ProtectedRoute>
         }
       />

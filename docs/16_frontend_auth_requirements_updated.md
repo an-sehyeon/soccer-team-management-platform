@@ -477,6 +477,8 @@ VITE_API_BASE_URL=http://localhost:8080
 /dashboard
 /player
 /mobile
+/dashboard/member-approval
+/schedules
 ```
 
 라우트 보호 파일:
@@ -504,6 +506,110 @@ src/routes/RoleRoute.tsx
 특정 역할만 접근할 수 있는 페이지를 보호한다.
 
 허용되지 않은 역할이 접근하면 해당 사용자의 역할과 기기 기준 초기 화면으로 이동한다.
+
+
+### 라우트 경로 상수 관리
+
+프론트에서 사용하는 주요 페이지 경로는 문자열을 각 파일에 직접 작성하지 않고, 라우트 상수 파일에서 한 곳에 모아 관리한다.
+
+관련 파일:
+
+```text
+frontend/src/constants/routes.ts
+```
+
+현재 사용하는 라우트 상수는 다음과 같다.
+
+```ts
+// 프론트에서 사용하는 주요 페이지 경로를 한 곳에서 관리하는 파일
+
+export const ROUTES = {
+  LOGIN: "/login",
+  SIGN_UP: "/sign-up",
+  DASHBOARD: "/dashboard",
+  PLAYER: "/player",
+  MOBILE: "/mobile",
+  MEMBER_APPROVAL: "/dashboard/member-approval",
+  SCHEDULE: "/schedules",
+} as const;
+```
+
+화면 이동이 필요한 경우에는 경로 문자열을 직접 입력하지 않고 `ROUTES` 상수를 사용한다.
+
+권장 사용 방식:
+
+```tsx
+<button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
+  스케줄 관리
+</button>
+```
+
+피해야 할 방식:
+
+```tsx
+<button type="button" onClick={() => navigate("/schedules")}>
+  스케줄 관리
+</button>
+```
+
+이유는 다음과 같다.
+
+* 경로 변경 시 한 파일만 수정하면 된다.
+* 오타로 인한 라우팅 오류를 줄일 수 있다.
+* 메뉴, 라우터, 권한 분기에서 같은 경로 값을 일관되게 사용할 수 있다.
+* 기능이 늘어나도 프론트 라우팅 구조를 유지보수하기 쉽다.
+
+
+### 프론트 파일 상단 주석 작성 규칙
+
+프론트 코드 작성 시 각 파일 상단에는 해당 파일이 어떤 역할을 하는지 한 줄 주석을 작성한다.
+
+이 규칙의 목적은 파일을 처음 보는 사람도 해당 파일의 책임을 빠르게 이해할 수 있게 하는 것이다.
+
+예시는 다음과 같다.
+
+```ts
+// 스케줄 화면과 API 연동에서 사용하는 요청, 응답, 검색 조건 타입을 정의하는 파일
+```
+
+```ts
+// 스케줄 조회, 등록, 수정, 삭제 API 요청 함수를 모아둔 파일
+```
+
+```tsx
+// 로그인한 사용자의 역할에 따라 스케줄 조회와 COACH 전용 관리 기능을 제공하는 화면 파일
+```
+
+주의사항은 다음과 같다.
+
+* 주석은 길게 작성하지 않는다.
+* 파일의 역할만 한 줄로 명확하게 작성한다.
+* 단순 설명이 아니라 실제 책임이 드러나게 작성한다.
+* 앞으로 새로 작성하는 프론트 타입, API, 페이지, 라우트, 유틸 파일에는 이 규칙을 적용한다.
+
+### 기능별 프론트 연동 문서 작성 규칙
+
+백엔드 기능을 프론트에 새로 연동할 때는 기존 백엔드 요구사항 문서만 참고하지 않고, 프론트 연동 요구사항 문서를 별도로 작성한다.
+
+프론트 연동 요구사항 문서에는 다음 내용을 포함한다.
+
+* 기능 목적
+* 사용자 역할
+* 프론트 권한 노출 정책
+* 화면 흐름
+* API 흐름
+* 타입 설계 방향
+* 라우팅 및 메뉴 연결
+* 예외 상황
+* 구현 순서
+* 테스트 결과
+* 추후 확장 가능성
+
+이유는 다음과 같다.
+
+* 백엔드 요구사항 문서는 API, DB, 권한 검증 중심이다.
+* 프론트 연동은 화면 흐름, 버튼 노출, 라우팅, 타입, 상태 관리 기준이 별도로 필요하다.
+* 추후 공지사항, 경기 영상, 분석 클립, 선수 기록 화면을 만들 때 같은 기준으로 이어갈 수 있다.
 
 ---
 
@@ -602,6 +708,7 @@ http://localhost:5173
 ```text
 frontend/src/api/axiosInstance.ts
 frontend/src/api/authApi.ts
+frontend/src/constants/routes.ts
 frontend/src/contexts/authContext.ts
 frontend/src/contexts/AuthProvider.tsx
 frontend/src/hooks/useAuth.ts
@@ -617,6 +724,10 @@ frontend/src/utils/apiError.ts
 frontend/src/utils/authRoute.ts
 frontend/src/utils/device.ts
 frontend/src/utils/tokenStorage.ts
+frontend/src/types/schedule.ts
+frontend/src/api/scheduleApi.ts
+frontend/src/pages/SchedulePage.tsx
+frontend/src/constants/routes.ts
 backend/src/main/java/com/soccer/platform/config/SecurityConfig.java
 ```
 
@@ -662,6 +773,3 @@ backend/src/main/java/com/soccer/platform/config/SecurityConfig.java
 * 선수 기록 화면 연동
 * 모바일 전용 하단 네비게이션
 * 반응형 UI 디자인 개선
-
-```
-```

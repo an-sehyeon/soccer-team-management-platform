@@ -1,6 +1,6 @@
 package com.soccer.platform.service.schedule;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import org.springframework.stereotype.Component;
 
@@ -21,7 +21,7 @@ public class ScheduleValidator {
         }
 
         validateRequiredValues(
-                request.getScheduleDatetime(),
+                request.getScheduleDateTime(),
                 request.getPlace(),
                 request.getScheduleType(),
                 request.getComment(),
@@ -36,7 +36,7 @@ public class ScheduleValidator {
         }
 
         validateRequiredValues(
-                request.getScheduleDatetime(),
+                request.getScheduleDateTime(),
                 request.getPlace(),
                 request.getScheduleType(),
                 request.getComment(),
@@ -45,7 +45,7 @@ public class ScheduleValidator {
     }
 
     // 스케줄 조회 기간 검증
-    public void validateDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+    public void validateDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate == null || endDate == null) {
             throw new CustomException(ErrorCode.INVALID_SCHEDULE_DATE_RANGE);
         }
