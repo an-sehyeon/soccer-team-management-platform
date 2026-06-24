@@ -19,7 +19,7 @@ import com.soccer.platform.common.constants.ScheduleTypeEnum;
 public class UpdateScheduleRequestDTO {
 
     // 변경할 스케줄 날짜와 시간
-    private LocalDateTime scheduleDatetime;
+    private LocalDateTime scheduleDateTime;
 
     // 변경할 장소
     private String place;

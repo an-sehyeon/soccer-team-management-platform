@@ -20,10 +20,10 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, Intege
 	// 최신 등록순이 아니라 일정 시간순으로 조회
 	List<ScheduleEntity> findByIsDeletedFalseOrderByScheduleDatetimeAsc();
 	
-	// 특정 기간의 삭제되지 않은 스케줄 조회
-	// 월별/주별 스케줄 조회 화면에서 사용
-	List<ScheduleEntity> findByScheduleDatetimeBetweenAndIsDeletedFalseOrderByScheduleDatetimeAsc(
-            LocalDateTime startDateTime,
-            LocalDateTime endDateTime
-    );
+	// 기간별 스케줄 조회
+	// 삭제되지 않은 스케줄을 시작 일시 이상, 종료 일시 미만 기준으로 조회한다.
+	List<ScheduleEntity> findByScheduleDatetimeGreaterThanEqualAndScheduleDatetimeLessThanAndIsDeletedFalseOrderByScheduleDatetimeAsc(
+	        LocalDateTime startDateTime,
+	        LocalDateTime endDateTime
+	);
 }

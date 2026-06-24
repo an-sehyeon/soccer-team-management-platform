@@ -19,7 +19,7 @@ import lombok.Setter;
 public class CreateScheduleRequestDTO {
 
     // 스케줄 날짜와 시간
-    private LocalDateTime scheduleDatetime;
+    private LocalDateTime scheduleDateTime;
 
     // 장소
     private String place;
