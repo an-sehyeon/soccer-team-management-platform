@@ -11,8 +11,8 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -108,4 +108,95 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+.page-container {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.card {
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.form-row,
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.schedule-form {
+  display: grid;
+  gap: 14px;
+}
+
+.schedule-form label,
+.form-row label {
+  display: grid;
+  gap: 6px;
+}
+
+.schedule-form input,
+.schedule-form select,
+.schedule-form textarea,
+.form-row input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.schedule-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.schedule-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.schedule-item p {
+  margin: 6px 0;
+}
+
+.schedule-item span {
+  font-size: 14px;
+  color: #666;
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+}
+
+.detail-list dt {
+  font-weight: 700;
+}
+
+.error-message {
+  color: #d32f2f;
 }

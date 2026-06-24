@@ -23,6 +23,9 @@ export function DashboardHomePage() {
         <h2>스케줄 관리</h2>
         <p>스케줄 목록 조회</p>
 
+        <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
+          스케줄
+        </button>
         {permissions.canCreateSchedule && (
           <button type="button">스케줄 등록</button>
         )}
