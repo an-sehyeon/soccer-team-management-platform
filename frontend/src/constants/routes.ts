@@ -7,4 +7,5 @@ export const ROUTES = {
   PLAYER: "/player",
   MOBILE: "/mobile",
   MEMBER_APPROVAL: "/dashboard/member-approval",
+  SCHEDULE: "/schedules",
 } as const;
