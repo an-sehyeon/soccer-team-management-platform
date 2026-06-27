@@ -4,7 +4,7 @@
 
 스케줄 관리 기능은 지도자가 팀 일정을 등록, 수정, 삭제하고 선수와 분석관이 일정을 조회하는 기능이다.
 
-초기 구현은 다음 정책을 기준으로 진행한다.
+최종 구현은 다음 정책을 기준으로 정리한다.
 
 - 인증은 이미 구현된 JWT 인증 구조를 사용한다.
 - JWT 인증 후 `CustomUserPrincipal`에서 `memberId`, `memberRole`, `isAdmin` 값을 사용한다.
@@ -15,6 +15,13 @@
 - 삭제는 실제 DB 삭제가 아니라 `is_deleted = true`로 처리하는 소프트 삭제를 사용한다.
 - 초기 버전은 단일 팀 서비스 기준으로 설계한다.
 - 현재 DB의 `schedule` 테이블 구조를 우선 사용하고, 별도 `title` 컬럼은 추가하지 않는다.
+- API 요청/응답 JSON 필드명은 `scheduleDateTime`으로 통일한다.
+- DB 컬럼명은 기존 `schedule_datetime`을 유지한다.
+- 현재 백엔드 Entity/Repository 내부 필드명은 기존 구현 기준인 `scheduleDatetime`을 유지할 수 있다.
+- 프론트 타입과 API 응답 필드명은 `scheduleDateTime`을 사용한다.
+- 스케줄 목록 조회는 `startDate`, `endDate`를 `yyyy-MM-dd` 형식으로 받는다.
+- 백엔드는 조회 기간을 `LocalDate`로 받은 뒤 `LocalDateTime` 범위로 변환해서 조회한다.
+- 종료일 당일 일정이 누락되지 않도록 `endDate.plusDays(1).atStartOfDay()` 미만 조건을 사용한다.
 
 ---
 
@@ -30,6 +37,7 @@
 - 지도자는 PC 또는 모바일에서 일정을 쉽게 등록할 수 있어야 한다.
 - 권한 없는 사용자가 스케줄을 변경할 수 없어야 한다.
 - 삭제된 스케줄은 조회 목록에 노출되지 않아야 한다.
+- 스케줄 조회 기간 처리에서 종료일 당일 일정이 누락되지 않아야 한다.
 - 추후 반복 일정, 출석 체크, 일정 알림으로 확장할 수 있어야 한다.
 
 ---
@@ -103,6 +111,7 @@
 - `memberRole = PLAYER`인 회원은 조회만 가능하다.
 - `memberRole = ANALYST`인 회원은 조회만 가능하다.
 - 삭제된 스케줄은 수정, 삭제, 상세 조회 대상이 될 수 없다.
+- 프론트에서 등록/수정/삭제 버튼이 보이지 않더라도 백엔드 권한 검증은 반드시 유지한다.
 
 ## 4.3 관리자 `isAdmin` 처리
 
@@ -128,17 +137,21 @@
 
 1. 사용자가 로그인한다.
 2. 메인 화면 또는 스케줄 메뉴에 진입한다.
-3. 오늘 일정 또는 이번 주 일정을 먼저 보여준다.
-4. 사용자가 날짜를 선택하면 해당 날짜의 스케줄 목록을 조회한다.
-5. 스케줄 항목을 누르면 상세 내용을 확인한다.
+3. 스케줄 화면은 기본적으로 현재 월의 첫날과 마지막 날을 조회 기간으로 설정한다.
+4. 스케줄 목록 API를 호출한다.
+5. 사용자가 조회 기간을 변경하면 해당 기간의 스케줄 목록을 다시 조회한다.
+6. 스케줄 항목을 누르면 상세 내용을 확인한다.
 
 조회 화면에 표시할 정보는 다음과 같다.
 
 - 일정 날짜와 시간
 - 일정 유형
 - 장소
+- 작성자 이름
 - 운동 강도
 - 상세 내용
+- 생성일시
+- 수정일시
 
 ## 5.2 지도자 스케줄 관리 화면
 
@@ -147,12 +160,14 @@
 기본 화면 흐름은 다음과 같다.
 
 1. 지도자가 스케줄 관리 화면에 진입한다.
-2. 월간/주간/일간 일정 목록을 확인한다.
-3. 등록 버튼을 누른다.
-4. 일정 날짜와 시간, 장소, 일정 유형, 운동 강도, 상세 내용을 입력한다.
-5. 저장 버튼을 누른다.
-6. 저장 성공 후 목록을 갱신한다.
-7. 기존 스케줄을 선택하면 수정 또는 삭제할 수 있다.
+2. 조회 기간 기준 스케줄 목록을 확인한다.
+3. 등록 폼에 일정 날짜와 시간, 장소, 일정 유형, 운동 강도, 상세 내용을 입력한다.
+4. 저장 버튼을 누른다.
+5. 저장 성공 후 목록을 갱신한다.
+6. 기존 스케줄의 수정 버튼을 누르면 등록 폼에 기존 값이 채워진다.
+7. 수정 저장 후 목록을 갱신한다.
+8. 삭제 버튼을 누르면 확인창을 띄운 뒤 삭제 API를 호출한다.
+9. 삭제 성공 후 목록을 갱신한다.
 
 ## 5.3 프론트 버튼 노출 정책
 
@@ -170,10 +185,10 @@
 
 스케줄 등록/수정/삭제 API는 지도자만 사용할 수 있으므로 지도자 전용 경로로 분리한다.
 
-권장 API 초안은 다음과 같다.
+최종 API는 다음과 같다.
 
 ```http
-GET    /api/schedules
+GET    /api/schedules?startDate=2026-06-01&endDate=2026-06-30
 GET    /api/schedules/{scheduleId}
 POST   /api/coach/schedules
 PATCH  /api/coach/schedules/{scheduleId}
@@ -192,14 +207,35 @@ GET /api/schedules?startDate=2026-06-01&endDate=2026-06-30
 - `PLAYER`
 - `ANALYST`
 
+요청 파라미터는 다음과 같다.
+
+| 파라미터 | 필수 여부 | 형식 | 설명 |
+|---|---:|---|---|
+| `startDate` | 필수 | `yyyy-MM-dd` | 조회 시작일 |
+| `endDate` | 필수 | `yyyy-MM-dd` | 조회 종료일 |
+
 처리 흐름은 다음과 같다.
 
 1. JWT 인증 정보를 확인한다.
 2. 로그인 회원의 역할이 `COACH`, `PLAYER`, `ANALYST` 중 하나인지 확인한다.
-3. 조회 시작일과 종료일을 검증한다.
-4. `is_deleted = false`인 스케줄만 조회한다.
-5. `schedule_datetime` 기준 오름차순으로 정렬한다.
-6. 목록 응답을 반환한다.
+3. 조회 시작일과 종료일을 `LocalDate`로 받는다.
+4. 조회 시작일과 종료일이 비어 있는지 확인한다.
+5. 종료일이 시작일보다 빠른지 검증한다.
+6. `startDate.atStartOfDay()`로 조회 시작 일시를 만든다.
+7. `endDate.plusDays(1).atStartOfDay()`로 조회 종료 일시를 만든다.
+8. `schedule_datetime >= 시작 일시` 그리고 `schedule_datetime < 종료 일시` 조건으로 조회한다.
+9. `is_deleted = false`인 스케줄만 조회한다.
+10. `schedule_datetime` 기준 오름차순으로 정렬한다.
+11. 목록 응답을 반환한다.
+
+조회 조건은 다음 기준을 사용한다.
+
+```text
+schedule_datetime >= startDate.atStartOfDay()
+schedule_datetime < endDate.plusDays(1).atStartOfDay()
+```
+
+이유는 `endDate`를 `2026-06-30T00:00:00`으로 직접 처리하면 6월 30일 오후 일정이 누락될 수 있기 때문이다.
 
 응답 예시는 다음과 같다.
 
@@ -207,11 +243,15 @@ GET /api/schedules?startDate=2026-06-01&endDate=2026-06-30
 [
   {
     "scheduleId": 1,
+    "writerMemberId": 5,
+    "writerName": "이승원",
     "scheduleDateTime": "2026-06-20T15:00:00",
-    "place": "메인 운동장",
+    "place": "운동장",
     "scheduleType": "TRAINING",
+    "comment": "전술 훈련",
     "intensity": "HIGH",
-    "comment": "전술 훈련 및 미니게임"
+    "createdAt": "2026-06-16T13:16:35.962399",
+    "updatedAt": "2026-06-16T13:16:35.962399"
   }
 ]
 ```
@@ -234,6 +274,23 @@ GET /api/schedules/{scheduleId}
 2. 스케줄 ID로 스케줄을 조회한다.
 3. 스케줄이 존재하지 않거나 삭제된 경우 실패 처리한다.
 4. 상세 정보를 반환한다.
+
+응답 예시는 다음과 같다.
+
+```json
+{
+  "scheduleId": 1,
+  "writerMemberId": 5,
+  "writerName": "이승원",
+  "scheduleDateTime": "2026-06-20T15:00:00",
+  "place": "운동장",
+  "scheduleType": "TRAINING",
+  "comment": "전술 훈련",
+  "intensity": "HIGH",
+  "createdAt": "2026-06-16T13:16:35.962399",
+  "updatedAt": "2026-06-16T13:16:35.962399"
+}
+```
 
 ## 6.4 스케줄 등록
 
@@ -262,9 +319,12 @@ POST /api/coach/schedules
 1. JWT 인증 정보를 확인한다.
 2. 로그인 회원의 역할이 `COACH`인지 확인한다.
 3. 요청 필수값을 검증한다.
-4. `member_id`에 등록한 지도자의 회원 ID를 저장한다.
-5. 스케줄을 저장한다.
-6. 생성된 스케줄 ID를 반환한다.
+4. `scheduleDateTime`이 비어 있지 않은지 확인한다.
+5. `scheduleType`이 허용된 Enum 값인지 확인한다.
+6. `intensity`가 null이 아니면 허용된 Enum 값인지 확인한다.
+7. `member_id`에 등록한 지도자의 회원 ID를 저장한다.
+8. 스케줄을 저장한다.
+9. 생성된 스케줄 ID를 반환한다.
 
 ## 6.5 스케줄 수정
 
@@ -275,6 +335,8 @@ PATCH /api/coach/schedules/{scheduleId}
 사용 가능 역할은 다음과 같다.
 
 - `COACH`
+
+요청 필드 기준은 등록 요청과 동일하다.
 
 처리 흐름은 다음과 같다.
 
@@ -330,18 +392,32 @@ DELETE /api/coach/schedules/{scheduleId}
 
 `schedule` 테이블은 `ScheduleEntity`로 매핑한다.
 
-권장 필드명은 다음과 같다.
+현재 구현 기준 필드명은 다음과 같다.
 
-| DB 컬럼 | Entity 필드명 |
-|---|---|
-| `id` | `id` |
-| `member_id` | `member` |
-| `schedule_datetime` | `scheduleDateTime` |
-| `place` | `place` |
-| `schedule_type` | `scheduleType` |
-| `comment` | `comment` |
-| `intensity` | `intensity` |
-| `is_deleted` | `isDeleted` |
+| DB 컬럼 | Entity 필드명 | API JSON 필드명 |
+|---|---|---|
+| `id` | `id` | `scheduleId` |
+| `member_id` | `member` | `writerMemberId`, `writerName` |
+| `schedule_datetime` | `scheduleDatetime` | `scheduleDateTime` |
+| `place` | `place` | `place` |
+| `schedule_type` | `scheduleType` | `scheduleType` |
+| `comment` | `comment` | `comment` |
+| `intensity` | `intensity` | `intensity` |
+| `is_deleted` | `isDeleted` | 응답 제외 |
+| `created_at` | `createdAt` | `createdAt` |
+| `updated_at` | `updatedAt` | `updatedAt` |
+
+정리하면 다음과 같다.
+
+```text
+DB 컬럼명: schedule_datetime
+Entity 필드명: scheduleDatetime
+DTO 필드명: scheduleDateTime
+프론트 타입 필드명: scheduleDateTime
+JSON 필드명: scheduleDateTime
+```
+
+Entity 내부 필드명은 기존 구현을 유지할 수 있지만, API 외부 요청/응답은 `scheduleDateTime`으로 통일한다.
 
 ## 7.3 일정 유형
 
@@ -400,7 +476,7 @@ MATCH / 연습경기 vs OO고
 
 ## 8.1 등록 요청 DTO
 
-`ScheduleCreateRequestDTO`
+`CreateScheduleRequestDTO`
 
 필드 방향은 다음과 같다.
 
@@ -410,9 +486,15 @@ MATCH / 연습경기 vs OO고
 - `intensity`
 - `comment`
 
+주의사항은 다음과 같다.
+
+- JSON 필드명은 반드시 `scheduleDateTime`을 사용한다.
+- `scheduleDatetime`으로 받지 않는다.
+- `scheduleDateTime`은 `LocalDateTime`으로 매핑한다.
+
 ## 8.2 수정 요청 DTO
 
-`ScheduleUpdateRequestDTO`
+`UpdateScheduleRequestDTO`
 
 초기 구현에서는 부분 수정 방식보다 전체 수정 방식에 가깝게 처리한다.
 
@@ -424,6 +506,11 @@ MATCH / 연습경기 vs OO고
 - `intensity`
 - `comment`
 
+주의사항은 다음과 같다.
+
+- JSON 필드명은 반드시 `scheduleDateTime`을 사용한다.
+- 등록 요청 DTO와 같은 필드 기준을 사용한다.
+
 ## 8.3 응답 DTO
 
 `ScheduleResponseDTO`
@@ -431,6 +518,8 @@ MATCH / 연습경기 vs OO고
 필드 방향은 다음과 같다.
 
 - `scheduleId`
+- `writerMemberId`
+- `writerName`
 - `scheduleDateTime`
 - `place`
 - `scheduleType`
@@ -439,9 +528,45 @@ MATCH / 연습경기 vs OO고
 - `createdAt`
 - `updatedAt`
 
+주의사항은 다음과 같다.
+
+- 작성자 정보는 `member_id`에 연결된 회원 정보를 기준으로 내려준다.
+- `scheduleDatetime`이 아니라 `scheduleDateTime`으로 응답한다.
+- 프론트 `ScheduleResponse` 타입과 응답 필드명을 맞춘다.
+
 ---
 
-## 9. 예외 상황
+## 9. Repository 설계 방향
+
+최종 구현에서는 기간 조회 시 `Between`보다 시작 이상, 종료 미만 조건을 사용한다.
+
+권장 Repository 메서드는 다음과 같다.
+
+```java
+List<ScheduleEntity> findByScheduleDatetimeGreaterThanEqualAndScheduleDatetimeLessThanAndIsDeletedFalseOrderByScheduleDatetimeAsc(
+        LocalDateTime startDateTime,
+        LocalDateTime endDateTime
+);
+```
+
+이 메서드는 다음 조건으로 조회한다.
+
+```text
+schedule_datetime >= startDateTime
+schedule_datetime < endDateTime
+is_deleted = false
+ORDER BY schedule_datetime ASC
+```
+
+`Between`을 사용하지 않는 이유는 다음과 같다.
+
+- `endDate`를 당일 00시로 해석하면 종료일 오후 일정이 누락될 수 있다.
+- 종료일 다음날 00시 미만 조건이 날짜 범위 조회에 더 안전하다.
+- 월간 조회, 주간 조회, 일간 조회 모두 같은 방식으로 처리할 수 있다.
+
+---
+
+## 10. 예외 상황
 
 | 상황 | 처리 방식 | 권장 HTTP 상태 |
 |---|---|---|
@@ -458,15 +583,16 @@ MATCH / 연습경기 vs OO고
 | 필수 입력값 누락 | 요청 실패 | `400 Bad Request` |
 | 허용되지 않은 일정 유형 | 요청 실패 | `400 Bad Request` |
 | 허용되지 않은 운동 강도 | 요청 실패 | `400 Bad Request` |
+| 조회 시작일 또는 종료일 누락 | 요청 실패 | `400 Bad Request` |
 | 조회 시작일이 종료일보다 늦음 | 요청 실패 | `400 Bad Request` |
 | 장소 길이 초과 | 요청 실패 | `400 Bad Request` |
 | 상세 내용 길이 초과 | 요청 실패 | `400 Bad Request` |
 
 ---
 
-## 10. 구현 순서
+## 11. 구현 순서
 
-## 10.1 백엔드 1단계: 기본 구조 확인
+## 11.1 백엔드 1단계: 기본 구조 확인
 
 1. `ScheduleEntity` 필드와 DB 컬럼 매핑 확인
 2. `ScheduleTypeEnum` 확인 또는 생성
@@ -474,36 +600,43 @@ MATCH / 연습경기 vs OO고
 4. `ScheduleRepository` 생성
 5. 기존 공통 예외 구조와 에러 코드 확인
 
-## 10.2 백엔드 2단계: DTO 작성
+## 11.2 백엔드 2단계: DTO 작성
 
-1. `ScheduleCreateRequestDTO` 작성
-2. `ScheduleUpdateRequestDTO` 작성
+1. `CreateScheduleRequestDTO` 작성
+2. `UpdateScheduleRequestDTO` 작성
 3. `ScheduleResponseDTO` 작성
-4. 날짜 범위 조회용 요청 파라미터 정책 정리
+4. JSON 필드명을 `scheduleDateTime`으로 통일
+5. 응답 DTO에 `writerMemberId`, `writerName` 포함
+6. 날짜 범위 조회용 요청 파라미터 정책 정리
 
-## 10.3 백엔드 3단계: 권한 검증 로직 작성
+## 11.3 백엔드 3단계: 권한 검증 로직 작성
 
 1. `CustomUserPrincipal`에서 `memberId`, `memberRole`, `isAdmin` 사용
 2. 스케줄 변경 권한 검증 메서드 작성
 3. `COACH`가 아니면 등록/수정/삭제 실패 처리
 4. 조회는 `COACH`, `PLAYER`, `ANALYST` 허용
 
-## 10.4 백엔드 4단계: Service 작성
+## 11.4 백엔드 4단계: Service 작성
 
 1. 스케줄 등록 기능 작성
 2. 스케줄 목록 조회 기능 작성
-3. 스케줄 상세 조회 기능 작성
-4. 스케줄 수정 기능 작성
-5. 스케줄 삭제 기능 작성
+3. 목록 조회 시 `LocalDate`를 `LocalDateTime` 범위로 변환
+4. 조회 범위는 시작일 00시 이상, 종료일 다음날 00시 미만으로 처리
+5. 스케줄 상세 조회 기능 작성
+6. 스케줄 수정 기능 작성
+7. 스케줄 삭제 기능 작성
 
-## 10.5 백엔드 5단계: Controller 작성
+## 11.5 백엔드 5단계: Controller 작성
 
 1. 공통 조회 Controller 작성
-2. 지도자 전용 등록 Controller 작성
-3. 지도자 전용 수정 Controller 작성
-4. 지도자 전용 삭제 Controller 작성
+2. 목록 조회는 `startDate`, `endDate`를 `LocalDate`로 받음
+3. `@RequestParam(name = "startDate")`와 `@RequestParam(name = "endDate")`를 명시
+4. `@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)`를 사용
+5. 지도자 전용 등록 Controller 작성
+6. 지도자 전용 수정 Controller 작성
+7. 지도자 전용 삭제 Controller 작성
 
-## 10.6 백엔드 6단계: 테스트
+## 11.6 백엔드 6단계: 테스트
 
 1. 지도자 스케줄 등록 성공 테스트
 2. 선수 스케줄 등록 실패 테스트
@@ -517,25 +650,22 @@ MATCH / 연습경기 vs OO고
 10. 전체 역할 스케줄 조회 성공 테스트
 11. 삭제된 스케줄 조회 제외 테스트
 12. 잘못된 날짜 범위 조회 실패 테스트
+13. 종료일 당일 오후 일정이 조회되는지 테스트
+14. 응답 JSON 필드명이 `scheduleDateTime`인지 테스트
 
-## 10.7 프론트 1단계: 조회 화면
+## 11.7 프론트 연동 기준
 
-1. 스케줄 목록 API 연동
-2. 오늘 일정 표시
-3. 주간/월간 일정 표시
-4. 스케줄 상세 보기 구현
+스케줄 프론트 연동 세부 요구사항은 별도 문서에서 관리한다.
 
-## 10.8 프론트 2단계: 지도자 관리 화면
+```text
+docs/17_schedule_frontend_integration_requirements.md
+```
 
-1. 등록 폼 구현
-2. 수정 폼 구현
-3. 삭제 버튼 구현
-4. `COACH`가 아닌 경우 관리 버튼 숨김
-5. 저장/수정/삭제 후 목록 갱신
+이 문서는 백엔드 스케줄 API 정책을 기준으로 하고, 프론트 화면 구조, 라우트 상수, 파일 상단 주석, 역할별 버튼 노출 정책은 17번 문서에서 관리한다.
 
 ---
 
-## 11. 추후 확장 가능성
+## 12. 추후 확장 가능성
 
 초기 구현에서는 단순 일정 CRUD와 조회에 집중한다.
 
@@ -553,12 +683,16 @@ MATCH / 연습경기 vs OO고
 
 ---
 
-## 12. 주의사항
+## 13. 주의사항
 
 - 스케줄 등록/수정/삭제 권한은 프론트가 아니라 백엔드에서 반드시 검증한다.
 - 분석관은 조회만 가능하므로 영상 관리 권한과 스케줄 관리 권한을 혼동하지 않는다.
 - 삭제는 실제 삭제가 아니라 `is_deleted = true`로 처리한다.
 - 조회 API는 삭제되지 않은 스케줄만 반환한다.
+- API 요청/응답 JSON 필드명은 `scheduleDateTime`으로 통일한다.
+- Entity 내부 필드명이 `scheduleDatetime`이어도 외부 API 필드명은 `scheduleDateTime`으로 응답한다.
 - 날짜 조회는 서버와 클라이언트의 시간대 차이를 고려해야 한다.
+- 프론트에서 월간 조회 기간을 만들 때 `toISOString()`을 사용하면 UTC 변환으로 날짜가 밀릴 수 있으므로 로컬 날짜 포맷을 사용한다.
+- 종료일 당일 일정이 누락되지 않도록 종료일 다음날 00시 미만 조건을 사용한다.
 - 현재 서비스는 단일 팀 기준이므로 `team_id`를 사용하지 않는다.
 - 추후 여러 팀을 받을 경우 `schedule` 테이블에 `team_id` 또는 팀 소속 구조가 필요하다.
