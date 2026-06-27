@@ -8,4 +8,5 @@ export const ROUTES = {
   MOBILE: "/mobile",
   MEMBER_APPROVAL: "/dashboard/member-approval",
   SCHEDULE: "/schedules",
+  NOTICE: "/notices",
 } as const;
