@@ -13,6 +13,7 @@ import { ROUTES } from "./constants/routes";
 import { AdminMemberApprovalPage } from "./pages/AdminMemberApprovalPage";
 import { AdminOnlyRoute } from "./routes/AdminOnlyRoute";
 import SchedulePage from "./pages/SchedulePage";
+import NoticePage from "./pages/NoticePage";
 
 function App() {
   return (
@@ -84,6 +85,15 @@ function App() {
         element={
           <ProtectedRoute>
             <SchedulePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.NOTICE}
+        element={
+          <ProtectedRoute>
+            <NoticePage />
           </ProtectedRoute>
         }
       />
