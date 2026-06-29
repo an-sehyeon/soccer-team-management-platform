@@ -113,7 +113,17 @@ public enum ErrorCode {
 	PLAYER_CLIP_DRAWING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 선수 개인 분석 클립 드로잉에 접근할 권한이 없습니다."),
 	PLAYER_CLIP_DRAWING_MANAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "선수 개인 분석 클립 드로잉을 등록하거나 수정할 권한이 없습니다."),
 	PLAYER_CLIP_DRAWING_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "선수 개인 분석 클립 드로잉을 삭제할 권한이 없습니다."),
-	DRAWING_DATA_REQUIRED(HttpStatus.BAD_REQUEST, "드로잉 데이터는 필수입니다.");
+	DRAWING_DATA_REQUIRED(HttpStatus.BAD_REQUEST, "드로잉 데이터는 필수입니다."),
+	
+	// 경기 영상 업로드
+	MATCH_VIDEO_FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "경기 영상 파일 저장에 실패했습니다."),
+	MATCH_VIDEO_UPLOAD_DIRECTORY_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "경기 영상 업로드 디렉터리 생성에 실패했습니다."),
+	MATCH_VIDEO_DURATION_EXTRACTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "경기 영상 길이 추출에 실패했습니다."),
+	INVALID_MATCH_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "경기 영상 길이가 올바르지 않습니다."),
+	MATCH_VIDEO_FILE_REQUIRED(HttpStatus.BAD_REQUEST, "경기 영상 파일은 필수입니다."),
+	INVALID_MATCH_VIDEO_FILE_EXTENSION(HttpStatus.BAD_REQUEST, "허용되지 않은 경기 영상 파일 확장자입니다."),
+	INVALID_MATCH_VIDEO_CONTENT_TYPE(HttpStatus.BAD_REQUEST, "허용되지 않은 경기 영상 파일 형식입니다."),
+	MATCH_VIDEO_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "경기 영상 파일 크기가 허용 범위를 초과했습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
