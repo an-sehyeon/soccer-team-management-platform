@@ -63,6 +63,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers("/api/auth/sign-up", "/api/auth/login").permitAll()
+						.requestMatchers(HttpMethod.GET, "/uploads/match-videos/**").permitAll()
 						.anyRequest().authenticated()
                 )
 				.addFilterBefore(
