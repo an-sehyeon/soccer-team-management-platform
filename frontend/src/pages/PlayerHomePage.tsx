@@ -42,10 +42,7 @@ export function PlayerHomePage() {
         <h2>경기 영상</h2>
         <p>조회</p>
 
-        <button
-          type="button"
-          onClick={() => handlePreparingFeature("경기 영상 조회")}
-        >
+        <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
           경기 영상 조회
         </button>
       </section>

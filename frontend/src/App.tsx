@@ -14,6 +14,8 @@ import { AdminMemberApprovalPage } from "./pages/AdminMemberApprovalPage";
 import { AdminOnlyRoute } from "./routes/AdminOnlyRoute";
 import SchedulePage from "./pages/SchedulePage";
 import NoticePage from "./pages/NoticePage";
+import MatchVideoPage from "./pages/MatchVideoPage";
+import MatchVideoCreatePage from "./pages/MatchVideoCreatePage.tsx";
 
 function App() {
   return (
@@ -94,6 +96,26 @@ function App() {
         element={
           <ProtectedRoute>
             <NoticePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.MATCH_VIDEO}
+        element={
+          <ProtectedRoute>
+            <MatchVideoPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.MATCH_VIDEO_CREATE}
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
+              <MatchVideoCreatePage />
+            </RoleRoute>
           </ProtectedRoute>
         }
       />
