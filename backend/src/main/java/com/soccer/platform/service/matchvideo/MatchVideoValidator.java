@@ -1,9 +1,12 @@
 package com.soccer.platform.service.matchvideo;
 
+import java.time.LocalDateTime;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import com.soccer.platform.common.constants.MatchResultEnum;
 import com.soccer.platform.common.exception.CustomException;
 import com.soccer.platform.common.exception.ErrorCode;
 import com.soccer.platform.dto.matchvideo.CreateMatchVideoRequestDTO;
@@ -24,17 +27,20 @@ import lombok.RequiredArgsConstructor;
  - 경기 영상 등록/수정 권한 검증
  - 경기 영상 조회 권한 검증
  - 경기 영상 삭제 권한 검증
- - 경기 영상 등록/수정 요청값 검증
+ - 경기 영상 등록/수정 메타데이터 검증
  - 경기 영상 길이 검증
  - 삭제되지 않은 경기 영상 조회
  - 로그인 회원 조회
+
+ 주의사항
+ - 실제 영상 파일 검증은 MatchVideoStorageService 구현체에서 처리
+ - 이 Validator는 경기 제목, 경기일, 장소, 점수, 경기 결과 같은 DB 저장 메타데이터 검증만 담당
  */
 @Component
 @RequiredArgsConstructor
 public class MatchVideoValidator {
 
     private static final int MAX_TINYINT_UNSIGNED_VALUE = 255;
-    private static final int MAX_URL_LENGTH = 255;
     private static final int MAX_TITLE_LENGTH = 255;
     private static final int MAX_PLACE_LENGTH = 255;
 
@@ -49,6 +55,12 @@ public class MatchVideoValidator {
                 principal,
                 ErrorCode.MATCH_VIDEO_ACCESS_DENIED
         );
+    }
+
+    // 경기 영상 관리 권한 검증
+    // 등록/수정 권한과 같은 정책을 사용하기 위한 별도 이름의 메서드
+    public void validateCanManageMatchVideo(CustomUserPrincipal principal) {
+        validateCanCreateOrUpdate(principal);
     }
 
     // 경기 영상 조회 권한 검증
@@ -92,13 +104,13 @@ public class MatchVideoValidator {
     }
 
     // 경기 영상 등록 요청 검증
+    // multipart 요청에서 영상 파일을 제외한 경기 메타데이터만 검증
     public void validateCreateRequest(CreateMatchVideoRequestDTO request) {
         if (request == null) {
             throw new CustomException(ErrorCode.INVALID_MATCH_VIDEO_REQUEST);
         }
 
         validateMatchVideoRequiredValues(
-                request.getUrl(),
                 request.getTitle(),
                 request.getGameDate(),
                 request.getPlace(),
@@ -109,13 +121,13 @@ public class MatchVideoValidator {
     }
 
     // 경기 영상 수정 요청 검증
+    // 이번 MVP에서는 영상 파일 교체 없이 경기 메타데이터만 수정
     public void validateUpdateRequest(UpdateMatchVideoRequestDTO request) {
         if (request == null) {
             throw new CustomException(ErrorCode.INVALID_MATCH_VIDEO_REQUEST);
         }
 
         validateMatchVideoRequiredValues(
-                request.getUrl(),
                 request.getTitle(),
                 request.getGameDate(),
                 request.getPlace(),
@@ -127,15 +139,13 @@ public class MatchVideoValidator {
 
     // 경기 영상 공통 필수값 검증
     private void validateMatchVideoRequiredValues(
-            String url,
             String title,
-            Object gameDate,
+            LocalDateTime gameDate,
             String place,
             Integer homeScore,
             Integer awayScore,
-            Object matchResult
+            MatchResultEnum matchResult
     ) {
-        validateRequiredText(url);
         validateRequiredText(title);
         validateRequiredText(place);
 
@@ -150,7 +160,6 @@ public class MatchVideoValidator {
         validateScore(homeScore);
         validateScore(awayScore);
 
-        validateMaxLength(url, MAX_URL_LENGTH);
         validateMaxLength(title, MAX_TITLE_LENGTH);
         validateMaxLength(place, MAX_PLACE_LENGTH);
     }

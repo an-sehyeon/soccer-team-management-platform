@@ -1,6 +1,10 @@
 package com.soccer.platform.controller;
 
+import java.time.LocalDateTime;
+
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,8 +15,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.soccer.platform.common.constants.MatchResultEnum;
 import com.soccer.platform.dto.matchvideo.CreateMatchVideoRequestDTO;
+import com.soccer.platform.dto.matchvideo.CreateMatchVideoResponseDTO;
 import com.soccer.platform.dto.matchvideo.MatchVideoDetailResponseDTO;
 import com.soccer.platform.dto.matchvideo.MatchVideoPageResponseDTO;
 import com.soccer.platform.dto.matchvideo.UpdateMatchVideoRequestDTO;
@@ -62,17 +69,35 @@ public class MatchVideoController {
     }
 
     // 경기 영상 등록
-    @PostMapping("/api/management/match-videos")
-    public ResponseEntity<Integer> createMatchVideo(
+    @PostMapping(
+            value = "/api/management/match-videos",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<CreateMatchVideoResponseDTO> createMatchVideo(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @RequestBody CreateMatchVideoRequestDTO request
+            @RequestParam(name = "videoFile") MultipartFile videoFile,
+            @RequestParam(name = "title") String title,
+            @RequestParam(name = "gameDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime gameDate,
+            @RequestParam(name = "place") String place,
+            @RequestParam(name = "homeScore") Integer homeScore,
+            @RequestParam(name = "awayScore") Integer awayScore,
+            @RequestParam(name = "matchResult") MatchResultEnum matchResult
     ) {
-        Integer matchVideoId = matchVideoService.createMatchVideo(
-                principal,
-                request
+        CreateMatchVideoRequestDTO requestDTO = CreateMatchVideoRequestDTO.of(
+                title,
+                gameDate,
+                place,
+                homeScore,
+                awayScore,
+                matchResult
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(matchVideoId);
+        CreateMatchVideoResponseDTO responseDTO =
+                matchVideoService.createMatchVideo(principal, videoFile, requestDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     // 경기 영상 수정
