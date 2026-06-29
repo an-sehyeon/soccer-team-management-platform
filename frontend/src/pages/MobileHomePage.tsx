@@ -126,36 +126,27 @@ export function MobileHomePage() {
         <h2>경기 영상</h2>
         <p>{createDescription(matchVideoActions)}</p>
 
-        <button
-          type="button"
-          onClick={() => handlePreparingFeature("경기 영상 조회")}
-        >
+        <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
           경기 영상 조회
         </button>
 
         {permissions.canCreateMatchVideo && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("경기 영상 등록")}
+            onClick={() => navigate(ROUTES.MATCH_VIDEO_CREATE)}
           >
             경기 영상 등록
           </button>
         )}
 
         {permissions.canUpdateMatchVideo && (
-          <button
-            type="button"
-            onClick={() => handlePreparingFeature("경기 영상 수정")}
-          >
+          <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
             경기 영상 수정
           </button>
         )}
 
         {permissions.canDeleteMatchVideo && (
-          <button
-            type="button"
-            onClick={() => handlePreparingFeature("경기 영상 삭제")}
-          >
+          <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
             경기 영상 삭제
           </button>
         )}

@@ -9,4 +9,6 @@ export const ROUTES = {
   MEMBER_APPROVAL: "/dashboard/member-approval",
   SCHEDULE: "/schedules",
   NOTICE: "/notices",
+  MATCH_VIDEO: "/match-videos",
+  MATCH_VIDEO_CREATE: "/match-videos/new",
 } as const;
