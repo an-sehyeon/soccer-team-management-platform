@@ -65,7 +65,7 @@ export function PlayerHomePage() {
 
         <button
           type="button"
-          onClick={() => handlePreparingFeature("내 개인 분석 클립 조회")}
+          onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
         >
           내 개인 분석 클립 조회
         </button>
