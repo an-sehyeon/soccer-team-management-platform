@@ -17,6 +17,7 @@ import NoticePage from "./pages/NoticePage";
 import MatchVideoPage from "./pages/MatchVideoPage";
 import MatchVideoCreatePage from "./pages/MatchVideoCreatePage.tsx";
 import TeamAnalysisClipPage from "./pages/TeamAnalysisClipPage.tsx";
+import PlayerAnalysisClipPage from "./pages/PlayerAnalysisClipPage.tsx";
 
 function App() {
   return (
@@ -126,6 +127,15 @@ function App() {
         element={
           <ProtectedRoute>
             <TeamAnalysisClipPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.PLAYER_ANALYSIS_CLIP}
+        element={
+          <ProtectedRoute>
+            <PlayerAnalysisClipPage />
           </ProtectedRoute>
         }
       />

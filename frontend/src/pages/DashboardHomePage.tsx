@@ -155,7 +155,7 @@ export function DashboardHomePage() {
 
         <button
           type="button"
-          onClick={() => handlePreparingFeature("선수 개인 분석 클립 조회")}
+          onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
         >
           선수 개인 분석 클립 조회
         </button>
@@ -163,7 +163,7 @@ export function DashboardHomePage() {
         {permissions.canCreatePlayerAnalysisClip && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("선수 개인 분석 클립 등록")}
+            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
           >
             선수 개인 분석 클립 등록
           </button>
@@ -172,7 +172,7 @@ export function DashboardHomePage() {
         {permissions.canUpdatePlayerAnalysisClip && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("선수 개인 분석 클립 수정")}
+            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
           >
             선수 개인 분석 클립 수정
           </button>
@@ -181,7 +181,7 @@ export function DashboardHomePage() {
         {permissions.canDeletePlayerAnalysisClip && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("선수 개인 분석 클립 삭제")}
+            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
           >
             선수 개인 분석 클립 삭제
           </button>

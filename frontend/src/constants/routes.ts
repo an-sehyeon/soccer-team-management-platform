@@ -12,4 +12,5 @@ export const ROUTES = {
   MATCH_VIDEO: "/match-videos",
   MATCH_VIDEO_CREATE: "/match-videos/new",
   TEAM_ANALYSIS_CLIP: "/team-analysis-clips",
+  PLAYER_ANALYSIS_CLIP: "/player-analysis-clips",
 } as const;
