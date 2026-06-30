@@ -35,7 +35,8 @@ public enum ErrorCode {
     // 회원
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
     DELETED_MEMBER(HttpStatus.UNAUTHORIZED, "탈퇴 또는 삭제된 회원입니다."),
-
+    MANAGEMENT_PLAYER_LIST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "관리용 선수 목록 조회 권한이 없습니다."),
+    
     // 인증/JWT
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "인증 토큰이 없습니다."),
