@@ -158,7 +158,7 @@ export function MobileHomePage() {
 
         <button
           type="button"
-          onClick={() => handlePreparingFeature("팀 분석 클립 조회")}
+          onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
         >
           팀 분석 클립 조회
         </button>
@@ -166,7 +166,7 @@ export function MobileHomePage() {
         {permissions.canCreateTeamAnalysisClip && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("팀 분석 클립 등록")}
+            onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
           >
             팀 분석 클립 등록
           </button>
@@ -175,7 +175,7 @@ export function MobileHomePage() {
         {permissions.canUpdateTeamAnalysisClip && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("팀 분석 클립 수정")}
+            onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
           >
             팀 분석 클립 수정
           </button>
@@ -184,7 +184,7 @@ export function MobileHomePage() {
         {permissions.canDeleteTeamAnalysisClip && (
           <button
             type="button"
-            onClick={() => handlePreparingFeature("팀 분석 클립 삭제")}
+            onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
           >
             팀 분석 클립 삭제
           </button>
