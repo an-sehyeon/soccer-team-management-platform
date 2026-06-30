@@ -72,5 +72,11 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Integer> {
 	 */
 	List<MemberEntity> findByIdInAndIsDeletedFalse(List<Integer> ids);
 	
+	// 선수 목록 조회
+	List<MemberEntity> findByMemberRoleAndApprovalStatusAndIsDeletedFalseOrderByUniformNumberAscNameAsc(
+	        MemberRoleEnum memberRole,
+	        ApprovalStatusEnum approvalStatus
+	);
+	
 	
 }
