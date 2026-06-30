@@ -16,6 +16,7 @@ import SchedulePage from "./pages/SchedulePage";
 import NoticePage from "./pages/NoticePage";
 import MatchVideoPage from "./pages/MatchVideoPage";
 import MatchVideoCreatePage from "./pages/MatchVideoCreatePage.tsx";
+import TeamAnalysisClipPage from "./pages/TeamAnalysisClipPage.tsx";
 
 function App() {
   return (
@@ -116,6 +117,15 @@ function App() {
             <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
               <MatchVideoCreatePage />
             </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.TEAM_ANALYSIS_CLIP}
+        element={
+          <ProtectedRoute>
+            <TeamAnalysisClipPage />
           </ProtectedRoute>
         }
       />

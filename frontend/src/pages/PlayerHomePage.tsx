@@ -53,9 +53,9 @@ export function PlayerHomePage() {
 
         <button
           type="button"
-          onClick={() => handlePreparingFeature("팀 분석 클립 조회")}
+          onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
         >
-          팀 분석 클립 조회
+          팀 분석 영상
         </button>
       </section>
 
