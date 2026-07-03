@@ -94,16 +94,21 @@ public enum ErrorCode {
 	CLIP_TIME_EXCEEDS_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "클립 시간이 원본 영상 길이를 초과했습니다."),
 	
 	// 팀 분석 클립 드로잉
+	// 팀 분석 클립 드로잉
 	TEAM_ANALYSIS_CLIP_DRAWING_NOT_FOUND(HttpStatus.NOT_FOUND, "팀 분석 클립 드로잉을 찾을 수 없습니다."),
 	TEAM_ANALYSIS_CLIP_DRAWING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "팀 분석 클립 드로잉 권한이 없습니다."),
 	INVALID_DRAWING_TIME_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간 범위가 올바르지 않습니다."),
-	DRAWING_TIME_OUT_OF_CLIP_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간은 팀 분석 클립 시간 범위 안에 있어야 합니다."),
+	DRAWING_TIME_OUT_OF_CLIP_RANGE(HttpStatus.BAD_REQUEST, "드로잉 시간은 클립 영상 시간 범위 안에 있어야 합니다."),
 	EMPTY_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터는 비어 있을 수 없습니다."),
 	INVALID_DRAWING_DATA(HttpStatus.BAD_REQUEST, "드로잉 데이터 형식이 올바르지 않습니다."),
 	
 	// 선수 분석 클립
 	PLAYER_ANALYSIS_CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 개인 분석 클립을 찾을 수 없습니다."),
 	INVALID_PLAYER_ROLE(HttpStatus.BAD_REQUEST, "대상 선수 역할이 올바르지 않습니다."),
+	PLAYER_ANALYSIS_CLIP_DIRECTORY_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "선수 개인 분석 클립 저장 디렉터리 생성에 실패했습니다."),
+	PLAYER_ANALYSIS_CLIP_ORIGINAL_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 개인 분석 클립 생성에 필요한 원본 영상 파일을 찾을 수 없습니다."),
+	PLAYER_ANALYSIS_CLIP_FILE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "선수 개인 분석 클립 파일 생성에 실패했습니다."),
+	PLAYER_ANALYSIS_CLIP_PROCESSING_CANNOT_UPDATE(HttpStatus.BAD_REQUEST, "생성 중인 선수 개인 분석 클립은 수정할 수 없습니다."),
 	
 	// 선수 개인 분석 클립 조회 기록
 	PLAYER_ANALYSIS_CLIP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "선수 개인 분석 클립에 접근할 권한이 없습니다."),
