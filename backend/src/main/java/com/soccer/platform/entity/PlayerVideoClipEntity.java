@@ -29,41 +29,53 @@ import lombok.Setter;
 @NoArgsConstructor
 public class PlayerVideoClipEntity extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Integer id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "upload_id", nullable = false)
-    private GameVideoUploadEntity gameVideoUpload;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "upload_id", nullable = false)
+	private GameVideoUploadEntity gameVideoUpload;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "editor_id", nullable = false)
-    private MemberEntity editor;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "editor_id", nullable = false)
+	private MemberEntity editor;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "player_id", nullable = false)
-    private MemberEntity player;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "player_id", nullable = false)
+	private MemberEntity player;
 
-    @Column(name = "clip_type", nullable = false, length = 30)
-    private PlayerClipTypeEnum clipType;
+	@Column(name = "clip_type", nullable = false, length = 30)
+	private PlayerClipTypeEnum clipType;
 
-    @Column(name = "title", nullable = false, length = 255)
-    private String title;
+	@Column(name = "title", nullable = false, length = 255)
+	private String title;
 
-    @Column(name = "comment", length = 255)
-    private String comment;
+	@Column(name = "comment", length = 255)
+	private String comment;
 
-    @Column(name = "start_time_sec", nullable = false)
-    private Integer startTimeSec;
+	@Column(name = "start_time_sec", nullable = false)
+	private Integer startTimeSec;
 
-    @Column(name = "end_time_sec", nullable = false)
-    private Integer endTimeSec;
+	@Column(name = "end_time_sec", nullable = false)
+	private Integer endTimeSec;
 
-    @Column(name = "url", length = 255)
-    private String url;
+	@Column(name = "url", length = 255)
+	private String url;
 
-    @Column(name = "status", nullable = false, length = 20)
-    private VideoUploadStatusEnum status = VideoUploadStatusEnum.UPLOADING;
+	@Column(name = "status", nullable = false, length = 20)
+	private VideoUploadStatusEnum status = VideoUploadStatusEnum.PROCESSING;
+
+	// 선수 개인 분석 클립 파일 생성 성공 처리
+	public void markGenerationReady(String generatedClipUrl) {
+		this.url = generatedClipUrl;
+		this.status = VideoUploadStatusEnum.READY;
+	}
+
+	// 선수 개인 분석 클립 파일 생성 실패 처리
+	public void markGenerationFailed() {
+		this.status = VideoUploadStatusEnum.FAILED;
+	}
+
 }
