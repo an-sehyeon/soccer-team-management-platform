@@ -580,22 +580,7 @@ public class PlayerAnalysisClipService {
 	private PlayerAnalysisClipDetailResponseDTO toPlayerAnalysisClipDetailResponseDTO(
 			PlayerVideoClipEntity playerVideoClip
 	) {
-		return new PlayerAnalysisClipDetailResponseDTO(
-				playerVideoClip.getId(),
-				playerVideoClip.getGameVideoUpload().getId(),
-				playerVideoClip.getGameVideoUpload().getTitle(),
-				playerVideoClip.getUrl(),
-				playerVideoClip.getPlayer().getId(),
-				playerVideoClip.getPlayer().getName(),
-				playerVideoClip.getClipType(),
-				playerVideoClip.getTitle(),
-				playerVideoClip.getComment(),
-				playerVideoClip.getStatus(),
-				playerVideoClip.getEditor().getId(),
-				playerVideoClip.getEditor().getName(),
-				playerVideoClip.getCreatedAt(),
-				playerVideoClip.getUpdatedAt()
-		);
+		return PlayerAnalysisClipDetailResponseDTO.from(playerVideoClip);
 	}
 
 }
