@@ -4,6 +4,8 @@ import { axiosInstance } from "./axiosInstance";
 import type {
   CreatePlayerAnalysisClipRequest,
   CreatePlayerAnalysisClipResponse,
+  CreatePlayerAnalysisClipWithDrawingsRequest,
+  CreatePlayerAnalysisClipWithDrawingsResponse,
   PlayerAnalysisClipDetailResponse,
   PlayerAnalysisClipPageResponse,
   PlayerAnalysisClipSearchParams,
@@ -78,6 +80,19 @@ export const createPlayerAnalysisClip = async (
     "/api/management/player-analysis-clips",
     request,
   );
+
+  return response.data;
+};
+
+// 선수 개인 분석 클립과 드로잉 통합 등록
+export const createPlayerAnalysisClipWithDrawings = async (
+  request: CreatePlayerAnalysisClipWithDrawingsRequest,
+): Promise<CreatePlayerAnalysisClipWithDrawingsResponse> => {
+  const response =
+    await axiosInstance.post<CreatePlayerAnalysisClipWithDrawingsResponse>(
+      "/api/management/player-analysis-clips/with-drawings",
+      request,
+    );
 
   return response.data;
 };

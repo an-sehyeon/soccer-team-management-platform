@@ -1,5 +1,10 @@
 // 선수 개인 분석 클립 API 요청/응답 타입을 정의하는 파일
 
+import type {
+  PlayerAnalysisClipDrawingData,
+  PlayerAnalysisClipDrawingType,
+} from "./playerAnalysisClipDrawing";
+
 export type PlayerAnalysisClipType =
   | "PLAYER_GOOD"
   | "PLAYER_MISTAKE"
@@ -12,7 +17,11 @@ export type PlayerAnalysisClipType =
   | "OFF_THE_BALL"
   | "ETC";
 
-export type PlayerAnalysisClipStatus = "UPLOADING" | "READY" | "FAILED";
+export type PlayerAnalysisClipStatus =
+  | "UPLOADING"
+  | "PROCESSING"
+  | "READY"
+  | "FAILED";
 
 export type PlayerSelectItem = {
   playerId: number;
@@ -37,8 +46,6 @@ export type PlayerAnalysisClipListItem = {
   playerName: string;
   clipType: PlayerAnalysisClipType;
   title: string;
-  startTimeSec: number;
-  endTimeSec: number;
   status: PlayerAnalysisClipStatus;
   editorId: number;
   editorName: string;
@@ -49,7 +56,7 @@ export type PlayerAnalysisClipDetailResponse = {
   playerClipId: number;
   matchVideoId: number;
   matchVideoTitle: string;
-  matchVideoUrl: string;
+  playerClipUrl: string | null;
   playerId: number;
   playerName: string;
   clipType: PlayerAnalysisClipType;
@@ -86,6 +93,30 @@ export type UpdatePlayerAnalysisClipRequest = {
 
 export type CreatePlayerAnalysisClipResponse = {
   playerClipId: number;
+  message: string;
+};
+
+export type CreatePlayerAnalysisClipDrawingItemRequest = {
+  drawingType: PlayerAnalysisClipDrawingType;
+  startTimeSec: number;
+  endTimeSec: number;
+  drawingData: PlayerAnalysisClipDrawingData;
+};
+
+export type CreatePlayerAnalysisClipWithDrawingsRequest = {
+  matchVideoId: number;
+  playerId: number;
+  clipType: PlayerAnalysisClipType;
+  title: string;
+  comment: string | null;
+  startTimeSec: number;
+  endTimeSec: number;
+  drawings: CreatePlayerAnalysisClipDrawingItemRequest[];
+};
+
+export type CreatePlayerAnalysisClipWithDrawingsResponse = {
+  playerClipId: number;
+  status: PlayerAnalysisClipStatus;
   message: string;
 };
 
@@ -127,4 +158,14 @@ export const PLAYER_ANALYSIS_CLIP_TYPE_LABELS: Record<
   PRESSING: "압박",
   OFF_THE_BALL: "오프 더 볼",
   ETC: "기타",
+};
+
+export const PLAYER_ANALYSIS_CLIP_STATUS_LABELS: Record<
+  PlayerAnalysisClipStatus,
+  string
+> = {
+  UPLOADING: "업로드 중",
+  PROCESSING: "생성 중",
+  READY: "재생 가능",
+  FAILED: "생성 실패",
 };
