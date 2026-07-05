@@ -64,6 +64,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers("/api/auth/sign-up", "/api/auth/login").permitAll()
 						.requestMatchers(HttpMethod.GET, "/uploads/match-videos/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/uploads/player-analysis-clips/**").permitAll()
 						.anyRequest().authenticated()
                 )
 				.addFilterBefore(
