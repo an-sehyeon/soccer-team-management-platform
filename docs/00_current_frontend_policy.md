@@ -58,11 +58,17 @@ Authorization: Bearer {accessToken}
 /dashboard
 /player
 /mobile
+
 /schedules
 /notices
+
 /match-videos
 /match-videos/new
+
 /team-analysis-clips
+/team-analysis-clips/new
+/team-analysis-clips/:teamClipId/edit
+
 /player-analysis-clips
 ```
 
@@ -149,6 +155,8 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
 선수 개인 분석 클립 상세 정보를 불러오지 못했습니다. / 경기 영상을 찾을 수 없습니다.
 ```
 
+클립 생성/수정 요청처럼 즉시 결과 확인이 필요한 작업은 `alert()`로 안내할 수 있다.
+
 ---
 
 ## 8. React useEffect 작성 정책
@@ -161,6 +169,8 @@ API 호출이 필요한 effect는 다음 기준을 따른다.
 - API 응답 이후에만 상태를 갱신한다.
 - 컴포넌트 언마운트 후 상태 변경을 막기 위해 `ignore` 또는 `isMounted` 플래그를 사용한다.
 - dependency에는 객체 전체가 아니라 필요한 원시값을 넣는다.
+- effect 안에서 즉시 `setState`를 호출해 렌더링 연쇄를 만들지 않는다.
+- 목록 조회 함수가 effect 밖에 있고 내부에서 바로 `setState`를 여러 번 호출하는 패턴은 피한다.
 
 예시:
 
@@ -203,12 +213,13 @@ useEffect(() => {
 ```text
 PlayerAnalysisClipPage.tsx
 TeamAnalysisClipPage.tsx
+TeamAnalysisClipEditorPage.tsx
 MatchVideoPage.tsx
 SchedulePage.tsx
 NoticePage.tsx
 ```
 
-단, 코드가 너무 길면 sandbox 파일로 만들어 링크를 제공할 수 있다.
+단, 사용자가 “필요한 코드만”이라고 명시하면 수정 부분만 제공한다.
 
 ---
 
@@ -253,63 +264,7 @@ const isPlayer = member?.memberRole === "PLAYER";
 
 ---
 
-## 12. 현재 프론트 상태
-
-현재 선수 개인 분석 클립 프론트 연동은 정상 확인된 상태다.
-
-선수 개인 분석 클립 드로잉 프론트 연동은 진행 중 중단된 상태다.
-
-중단 이유는 백엔드 저장 정책이 변경되었기 때문이다.
-
-기존 프론트는 원본 경기 영상 URL과 `startTimeSec`, `endTimeSec`를 기준으로 구간 재생을 처리하려고 했다.
-
-하지만 신규 정책에서는 선수 개인 분석 클립 생성 시 실제 mp4 클립 파일을 생성하고, 상세 재생은 `player_video_clip.url` 기준으로 바뀐다.
-
-따라서 다음 프론트 작업은 백엔드 비동기 클립 파일 생성 구조가 완료된 뒤 다시 진행한다.
-
----
-
-## 13. 선수 개인 분석 클립 신규 프론트 방향
-
-백엔드 구조 변경 후 선수 개인 분석 클립 등록 화면은 다음 흐름으로 바뀐다.
-
-1. 원본 경기 영상 선택
-2. 대상 선수 선택
-3. 클립 유형, 제목, 코멘트 입력
-4. 원본 경기 영상에서 시작/종료 구간 선택
-5. 선택한 구간 기준으로 드로잉 작성
-6. 최종 저장 버튼 클릭
-7. 클립 메타데이터와 드로잉 JSON 목록을 통합 생성 API로 전송
-8. 백엔드는 `PROCESSING` 상태로 저장하고 비동기 파일 생성 시작
-9. 목록 화면에서 `PROCESSING`, `READY`, `FAILED` 상태 표시
-10. `READY` 상태가 되면 생성된 클립 파일 URL을 재생
-
-신규 API 후보는 다음과 같다.
-
-```http
-POST /api/management/player-analysis-clips/with-drawings
-```
-
-프론트 요청에는 다음 데이터를 포함한다.
-
-```text
-matchVideoId
-playerId
-clipType
-title
-comment
-startTimeSec
-endTimeSec
-drawings[]
-```
-
-클립의 `startTimeSec`, `endTimeSec`는 원본 경기 영상 기준이다.
-
-드로잉의 `startTimeSec`, `endTimeSec`는 생성될 클립 영상 기준이다.
-
----
-
-## 14. 영상 URL 처리 정책
+## 12. 영상 URL 처리 정책
 
 현재 프론트는 백엔드가 상대 경로를 내려주면 API base URL과 결합해 재생 URL을 만든다.
 
@@ -317,6 +272,8 @@ drawings[]
 
 ```text
 /uploads/match-videos/{storedFileName}
+/uploads/team-analysis-clips/{storedFileName}
+/uploads/player-analysis-clips/{storedFileName}
 ```
 
 운영 전에는 반드시 권한 검증이 포함된 스트리밍 API 또는 Signed URL 방식으로 전환해야 한다.
@@ -325,7 +282,82 @@ drawings[]
 
 ---
 
-## 15. 드로잉 프론트 정책
+## 13. 팀 분석 클립 프론트 최신 정책
+
+팀 분석 클립 화면은 목록/상세 페이지와 등록/수정 편집기 페이지를 분리한다.
+
+경로는 다음과 같다.
+
+```text
+/team-analysis-clips
+/team-analysis-clips/new
+/team-analysis-clips/:teamClipId/edit
+```
+
+### 13-1. 목록/상세 페이지
+
+`/team-analysis-clips`의 역할은 다음과 같다.
+
+- READY 상태 팀 분석 클립 목록 조회
+- 경기 영상 조건 조회
+- 클립 유형 조건 조회
+- 팀 분석 클립 상세 조회
+- 생성된 `teamClipUrl` 기준 영상 재생
+- 드로잉 오버레이 표시
+- 등록 페이지 이동
+- 수정 페이지 이동
+- COACH 삭제 처리
+
+PLAYER는 조회만 가능하다.
+
+COACH와 ANALYST는 등록/수정 버튼을 볼 수 있다.
+
+COACH만 삭제 버튼을 볼 수 있다.
+
+### 13-2. 등록 편집기 페이지
+
+`/team-analysis-clips/new`의 역할은 다음과 같다.
+
+- 원본 경기 영상 선택
+- 영상 선택 후 원본 영상 재생 영역 표시
+- 클립 시작/종료 시간 버튼 설정
+- 클립 시간 초기화
+- 선택 구간 재생
+- 드로잉 시작/종료 시간 버튼 설정
+- 드로잉 시간 초기화
+- 클립 정보 입력
+- 드로잉 작성
+- 저장 전 드로잉 목록 관리
+- 최종 저장
+
+등록 페이지는 원본 경기 영상 선택 전에는 원본 영상 선택 영역만 표시한다.
+
+원본 영상 선택 전에는 아래 영역을 숨긴다.
+
+```text
+클립 정보
+드로잉 작성
+저장 전 드로잉 목록
+최종 저장
+```
+
+### 13-3. 수정 편집기 페이지
+
+`/team-analysis-clips/:teamClipId/edit`의 역할은 다음과 같다.
+
+- 기존 클립 정보 조회
+- 기존 드로잉 조회
+- 기존 원본 영상 기준 시간 유지
+- 수정 페이지에서는 전체 편집 영역을 바로 표시
+- 수정 저장 시 통합 수정 API 호출
+
+수정 페이지에서는 제목/코멘트/드로잉만 바꾸면 기존 mp4 파일을 유지한다.
+
+클립 시작/종료 시간이 바뀌면 백엔드에서 mp4 파일 재생성을 요청한다.
+
+---
+
+## 14. 팀 분석 클립 드로잉 프론트 정책
 
 드로잉은 영상 파일에 합성하지 않는다.
 
@@ -335,11 +367,70 @@ drawings[]
 
 드로잉은 영상 재생 시간이 `startTimeSec`, `endTimeSec` 범위 안에 있을 때만 표시한다.
 
-선수 개인 분석 클립 파일 생성 구조 이후에는 드로잉 시간이 클립 영상 기준으로 바뀐다.
+팀 분석 클립 드로잉 시간 기준은 생성된 팀 분석 클립 영상 기준 초다.
+
+예시는 다음과 같다.
+
+```text
+원본 영상 100초 ~ 115초를 잘라 15초 팀 분석 클립 생성
+드로잉은 2초 ~ 6초처럼 생성된 클립 영상 기준으로 저장
+```
 
 ---
 
-## 16. 기능 완료 후 문서 갱신 규칙
+## 15. 선수 개인 분석 클립 현재 프론트 상태
+
+선수 개인 분석 클립 프론트 연동은 기존 구조 기준으로 정상 확인된 상태다.
+
+선수 개인 분석 클립 드로잉 프론트 연동도 진행되었지만, 이후 팀 분석 클립 편집기 구조가 개선되었으므로 다음 작업에서 동일 구조로 정리한다.
+
+다음 작업 목표는 다음과 같다.
+
+```text
+선수 개인 분석 클립도 팀 분석 클립과 동일하게 목록/상세 페이지와 등록/수정 편집기 페이지로 분리한다.
+```
+
+다음 작업에서 반영할 방향은 다음과 같다.
+
+- `/player-analysis-clips`는 목록/상세/삭제/등록·수정 이동 전용 페이지로 정리한다.
+- `/player-analysis-clips/new`는 등록 전용 편집기 페이지로 만든다.
+- `/player-analysis-clips/:playerClipId/edit`는 수정 전용 편집기 페이지로 만든다.
+- 상세 재생은 `playerClipUrl` 기준으로 처리한다.
+- 등록 페이지에서는 원본 경기 영상과 대상 선수를 선택하기 전까지 편집 영역을 숨긴다.
+- 수정 페이지에서는 기존 클립 정보와 드로잉을 유지한 상태로 전체 편집 영역을 바로 표시한다.
+- 클립 시작/종료 시간은 원본 경기 영상 기준 초다.
+- 드로잉 시작/종료 시간은 생성된 선수 개인 분석 클립 영상 기준 초다.
+- 클립/드로잉 시작·종료 시간은 영상 현재 시간 기준 버튼으로 설정한다.
+- 클립 시간 초기화 버튼과 드로잉 시간 초기화 버튼을 추가한다.
+- NaN이 화면에 표시되지 않도록 숫자 값을 안전하게 처리한다.
+
+---
+
+## 16. CORS 관련 프론트 주의사항
+
+`PUT`, `PATCH`, `DELETE` 요청은 브라우저에서 preflight `OPTIONS` 요청이 발생한다.
+
+프론트에서 다음과 같은 에러가 나면 백엔드 CORS 설정을 먼저 확인한다.
+
+```text
+Response to preflight request doesn't pass access control check
+No 'Access-Control-Allow-Origin' header is present on the requested resource
+```
+
+백엔드에서는 다음 설정이 필요하다.
+
+```text
+allowedOrigins: http://localhost:5173
+allowedMethods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+allowedHeaders: Authorization, Content-Type
+OPTIONS /** permitAll
+```
+
+프론트에서는 실제 요청에 Authorization 헤더가 정상 포함되는지 확인한다.
+
+---
+
+## 17. 기능 완료 후 문서 갱신 규칙
 
 프론트 기능 작업이 완료되면 사용자가 따로 요청하지 않아도 다음을 제공한다.
 
