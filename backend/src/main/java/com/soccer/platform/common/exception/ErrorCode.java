@@ -92,8 +92,23 @@ public enum ErrorCode {
 	INVALID_TEAM_ANALYSIS_CLIP_REQUEST(HttpStatus.BAD_REQUEST, "팀 분석 클립 요청 값이 올바르지 않습니다."),
 	INVALID_CLIP_TIME_RANGE(HttpStatus.BAD_REQUEST, "클립 시작 시간과 종료 시간이 올바르지 않습니다."),
 	CLIP_TIME_EXCEEDS_VIDEO_DURATION(HttpStatus.BAD_REQUEST, "클립 시간이 원본 영상 길이를 초과했습니다."),
+	TEAM_ANALYSIS_CLIP_PROCESSING_CANNOT_UPDATE(
+	        HttpStatus.BAD_REQUEST,
+	        "팀 분석 클립 파일 생성 중에는 수정할 수 없습니다."
+	),
+	TEAM_ANALYSIS_CLIP_DIRECTORY_CREATE_FAILED(
+	        HttpStatus.INTERNAL_SERVER_ERROR,
+	        "팀 분석 클립 저장 디렉터리 생성에 실패했습니다."
+	),
+	TEAM_ANALYSIS_CLIP_ORIGINAL_FILE_NOT_FOUND(
+	        HttpStatus.NOT_FOUND,
+	        "팀 분석 클립 생성을 위한 원본 영상 파일을 찾을 수 없습니다."
+	),
+	TEAM_ANALYSIS_CLIP_FILE_GENERATION_FAILED(
+	        HttpStatus.INTERNAL_SERVER_ERROR,
+	        "팀 분석 클립 파일 생성에 실패했습니다."
+	),
 	
-	// 팀 분석 클립 드로잉
 	// 팀 분석 클립 드로잉
 	TEAM_ANALYSIS_CLIP_DRAWING_NOT_FOUND(HttpStatus.NOT_FOUND, "팀 분석 클립 드로잉을 찾을 수 없습니다."),
 	TEAM_ANALYSIS_CLIP_DRAWING_ACCESS_DENIED(HttpStatus.FORBIDDEN, "팀 분석 클립 드로잉 권한이 없습니다."),

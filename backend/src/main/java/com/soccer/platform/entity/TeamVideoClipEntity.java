@@ -5,6 +5,8 @@ import com.soccer.platform.common.constants.VideoUploadStatusEnum;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,8 +21,8 @@ import lombok.Setter;
 /**
  * 팀 분석 클립 엔티티
  *
- * 원본 경기 영상에서 팀 전체에게 공유할 분석 구간을 저장한다.
- * 클립은 실제 파일을 자르지 않고 원본 영상 기준 시작/종료 시간으로 관리한다.
+ * 원본 경기 영상에서 팀 전체에게 공유할 분석 구간을 저장
+ * 클립 생성 시 실제 mp4 파일을 비동기로 생성하고, 생성된 파일 URL을 저장
  */
 @Entity
 @Table(name = "team_video_clip")
@@ -42,6 +44,7 @@ public class TeamVideoClipEntity extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private MemberEntity member;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "clip_type", nullable = false, length = 30)
     private TeamVideoClipTypeEnum clipType;
 
@@ -60,6 +63,24 @@ public class TeamVideoClipEntity extends BaseEntity {
     @Column(name = "url", length = 255)
     private String url;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private VideoUploadStatusEnum status = VideoUploadStatusEnum.UPLOADING;
+    private VideoUploadStatusEnum status = VideoUploadStatusEnum.PROCESSING;
+
+    /*
+     * 팀 분석 클립 파일 생성 성공 처리
+     * FFmpeg 작업 성공 후 생성된 mp4 URL을 저장하고 READY 상태로 변경
+     */
+    public void markGenerationReady(String generatedClipUrl) {
+        this.url = generatedClipUrl;
+        this.status = VideoUploadStatusEnum.READY;
+    }
+
+    /*
+     * 팀 분석 클립 파일 생성 실패 처리
+     * FFmpeg 작업 실패 시 FAILED 상태로 변경
+     */
+    public void markGenerationFailed() {
+        this.status = VideoUploadStatusEnum.FAILED;
+    }
 }
