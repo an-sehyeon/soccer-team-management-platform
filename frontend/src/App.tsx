@@ -1,6 +1,6 @@
 // 앱 전체 라우팅 구조를 정의하는 파일
-
 import { Navigate, Route, Routes } from "react-router-dom";
+
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardHomePage } from "./pages/DashboardHomePage";
@@ -17,6 +17,7 @@ import NoticePage from "./pages/NoticePage";
 import MatchVideoPage from "./pages/MatchVideoPage";
 import MatchVideoCreatePage from "./pages/MatchVideoCreatePage.tsx";
 import TeamAnalysisClipPage from "./pages/TeamAnalysisClipPage.tsx";
+import TeamAnalysisClipEditorPage from "./pages/TeamAnalysisClipEditorPage.tsx";
 import PlayerAnalysisClipPage from "./pages/PlayerAnalysisClipPage.tsx";
 
 function App() {
@@ -127,6 +128,28 @@ function App() {
         element={
           <ProtectedRoute>
             <TeamAnalysisClipPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.TEAM_ANALYSIS_CLIP_CREATE}
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
+              <TeamAnalysisClipEditorPage />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.TEAM_ANALYSIS_CLIP_EDIT}
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
+              <TeamAnalysisClipEditorPage />
+            </RoleRoute>
           </ProtectedRoute>
         }
       />

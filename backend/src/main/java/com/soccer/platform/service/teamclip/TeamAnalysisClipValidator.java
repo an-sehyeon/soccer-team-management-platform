@@ -1,12 +1,16 @@
 package com.soccer.platform.service.teamclip;
 
 import org.springframework.data.domain.Pageable;
+import com.soccer.platform.common.constants.TeamVideoClipTypeEnum;
+import com.soccer.platform.dto.teamanalysisclip.UpdateTeamAnalysisClipWithDrawingsRequestDTO;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import com.soccer.platform.common.constants.VideoUploadStatusEnum;
 import com.soccer.platform.common.exception.CustomException;
 import com.soccer.platform.common.exception.ErrorCode;
 import com.soccer.platform.dto.teamanalysisclip.CreateTeamAnalysisClipRequestDTO;
+import com.soccer.platform.dto.teamanalysisclip.CreateTeamAnalysisClipWithDrawingsRequestDTO;
 import com.soccer.platform.dto.teamanalysisclip.UpdateTeamAnalysisClipRequestDTO;
 import com.soccer.platform.entity.GameVideoUploadEntity;
 import com.soccer.platform.entity.MemberEntity;
@@ -21,17 +25,9 @@ import com.soccer.platform.service.common.PermissionValidator;
 import lombok.RequiredArgsConstructor;
 
 /*
- 	팀 분석 클립 Validator
- 	팀 분석 클립 기능에서 사용하는 권한 검증, 요청값 검증, Entity 조회
- 	
- 	- 팀 분석 클립 등록/수정 권한 검증
-	- 팀 분석 클립 조회 권한 검증
-	- 팀 분석 클립 삭제 권한 검증
-	- 팀 분석 클립 등록/수정 요청값 검증
-	- 클립 시간 구간 검증
-	- 삭제되지 않은 팀 분석 클립 조회
-	- 삭제되지 않은 원본 경기 영상 조회
-	- 로그인 회원 조회
+ * 팀 분석 클립 Validator
+ *
+ * 팀 분석 클립 기능에서 사용하는 권한 검증, 요청값 검증, Entity 조회를 담당한다.
  */
 
 @Component
@@ -71,6 +67,17 @@ public class TeamAnalysisClipValidator {
         );
     }
 
+    // 생성 중인 팀 분석 클립 수정 방지
+    public void validateCanUpdateGenerationTarget(TeamVideoClipEntity teamClip) {
+        if (teamClip == null) {
+            throw new CustomException(ErrorCode.TEAM_ANALYSIS_CLIP_NOT_FOUND);
+        }
+
+        if (teamClip.getStatus() == VideoUploadStatusEnum.PROCESSING) {
+            throw new CustomException(ErrorCode.TEAM_ANALYSIS_CLIP_PROCESSING_CANNOT_UPDATE);
+        }
+    }
+
     // 로그인 회원 조회
     public MemberEntity findLoginMember(CustomUserPrincipal principal) {
         return memberQueryService.findLoginMember(
@@ -92,8 +99,21 @@ public class TeamAnalysisClipValidator {
         return matchVideoQueryService.findActiveMatchVideoWithDuration(
                 matchVideoId,
                 ErrorCode.MATCH_VIDEO_NOT_FOUND,
-                ErrorCode.INVALID_VIDEO_DURATION
+                ErrorCode.MATCH_VIDEO_DURATION_NOT_READY
         );
+    }
+    
+ // 선택 입력된 팀 분석 클립 유형 변환
+    public TeamVideoClipTypeEnum parseNullableClipType(String clipType) {
+        if (clipType == null || clipType.isBlank()) {
+            return null;
+        }
+
+        try {
+            return TeamVideoClipTypeEnum.valueOf(clipType.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new CustomException(ErrorCode.INVALID_TEAM_ANALYSIS_CLIP_REQUEST);
+        }
     }
 
     // 삭제되지 않은 팀 분석 클립 조회
@@ -104,20 +124,6 @@ public class TeamAnalysisClipValidator {
 
         return teamVideoClipRepository.findByIdAndIsDeletedFalse(teamClipId)
                 .orElseThrow(() -> new CustomException(ErrorCode.TEAM_ANALYSIS_CLIP_NOT_FOUND));
-    }
-
-    // 연결된 원본 경기 영상 활성 상태 검증
-    public void validateLinkedMatchVideoActive(TeamVideoClipEntity teamClip) {
-        if (teamClip == null
-                || teamClip.getGameVideoUpload() == null
-                || teamClip.getGameVideoUpload().getId() == null) {
-            throw new CustomException(ErrorCode.MATCH_VIDEO_NOT_FOUND);
-        }
-
-        matchVideoQueryService.findActiveMatchVideoById(
-                teamClip.getGameVideoUpload().getId(),
-                ErrorCode.MATCH_VIDEO_NOT_FOUND
-        );
     }
 
     // matchVideoId 필터가 있는 목록 조회 Pageable 생성
@@ -154,8 +160,78 @@ public class TeamAnalysisClipValidator {
         );
     }
 
+    // 팀 분석 클립과 드로잉 통합 등록 요청 검증
+    public void validateCreateWithDrawingsRequest(
+            CreateTeamAnalysisClipWithDrawingsRequestDTO request
+    ) {
+        if (request == null) {
+            throw new CustomException(ErrorCode.INVALID_TEAM_ANALYSIS_CLIP_REQUEST);
+        }
+
+        if (request.getMatchVideoId() == null) {
+            throw new CustomException(ErrorCode.INVALID_TEAM_ANALYSIS_CLIP_REQUEST);
+        }
+
+        validateTeamClipRequiredValues(
+                request.getClipType(),
+                request.getTitle(),
+                request.getComment(),
+                request.getStartTimeSec(),
+                request.getEndTimeSec()
+        );
+    }
+
     // 팀 분석 클립 수정 요청 검증
     public void validateUpdateRequest(UpdateTeamAnalysisClipRequestDTO request) {
+        if (request == null) {
+            throw new CustomException(ErrorCode.INVALID_TEAM_ANALYSIS_CLIP_REQUEST);
+        }
+
+        validateTeamClipRequiredValues(
+                request.getClipType(),
+                request.getTitle(),
+                request.getComment(),
+                request.getStartTimeSec(),
+                request.getEndTimeSec()
+        );
+    }
+
+    // 클립 시간 구간 검증
+    public void validateClipTimeRange(
+            Integer startTimeSec,
+            Integer endTimeSec,
+            Integer durationSec
+    ) {
+        if (startTimeSec == null || endTimeSec == null) {
+            throw new CustomException(ErrorCode.INVALID_CLIP_TIME_RANGE);
+        }
+
+        if (startTimeSec < 0 || endTimeSec < 0 || startTimeSec >= endTimeSec) {
+            throw new CustomException(ErrorCode.INVALID_CLIP_TIME_RANGE);
+        }
+
+        if (durationSec == null || durationSec <= 0) {
+            throw new CustomException(ErrorCode.MATCH_VIDEO_DURATION_NOT_READY);
+        }
+
+        if (endTimeSec > durationSec) {
+            throw new CustomException(ErrorCode.CLIP_TIME_EXCEEDS_VIDEO_DURATION);
+        }
+    }
+
+    // 빈 문자열 정리
+    public String trimNullableText(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim();
+    }
+    
+    // 팀 분석 클립과 드로잉 통합 수정 요청 검증
+    public void validateUpdateWithDrawingsRequest(
+            UpdateTeamAnalysisClipWithDrawingsRequestDTO request
+    ) {
         if (request == null) {
             throw new CustomException(ErrorCode.INVALID_TEAM_ANALYSIS_CLIP_REQUEST);
         }
@@ -193,29 +269,6 @@ public class TeamAnalysisClipValidator {
         }
     }
 
-    // 클립 시간 구간 검증
-    public void validateClipTimeRange(
-            Integer startTimeSec,
-            Integer endTimeSec,
-            Integer durationSec
-    ) {
-        if (startTimeSec == null || endTimeSec == null) {
-            throw new CustomException(ErrorCode.INVALID_CLIP_TIME_RANGE);
-        }
-
-        if (startTimeSec < 0 || endTimeSec <= 0 || startTimeSec >= endTimeSec) {
-            throw new CustomException(ErrorCode.INVALID_CLIP_TIME_RANGE);
-        }
-
-        if (durationSec == null || durationSec <= 0) {
-            throw new CustomException(ErrorCode.INVALID_VIDEO_DURATION);
-        }
-
-        if (endTimeSec > durationSec) {
-            throw new CustomException(ErrorCode.CLIP_TIME_EXCEEDS_VIDEO_DURATION);
-        }
-    }
-
     // 필수 문자열 검증
     private void validateRequiredText(String value) {
         if (value == null || value.trim().isEmpty()) {
@@ -228,18 +281,5 @@ public class TeamAnalysisClipValidator {
         if (value.trim().length() > maxLength) {
             throw new CustomException(ErrorCode.INVALID_TEAM_ANALYSIS_CLIP_REQUEST);
         }
-    }
-
-    /*
-     * 빈 문자열 정리
-     * comment처럼 선택값인 문자열은 null 또는 공백이면 null로 저장
-     * 값이 있으면 앞뒤 공백을 제거
-     */
-    public String trimNullableText(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-
-        return value.trim();
     }
 }

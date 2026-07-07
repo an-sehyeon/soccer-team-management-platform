@@ -3,6 +3,7 @@ package com.soccer.platform.service.teamclipdrawing;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.stereotype.Component;
 
 import com.soccer.platform.common.exception.CustomException;
@@ -23,8 +24,10 @@ import lombok.RequiredArgsConstructor;
 
 /*
  * 팀 분석 클립 드로잉 Validator
- * 드로잉 권한, 조회, 시간 범위, drawingData 변환을 처리
+ * 팀 분석 클립 드로잉 권한, 조회, 시간 범위, drawingData 변환을 처리한다.
+ * 드로잉 시간은 생성된 팀 분석 클립 영상 기준 초로 검증한다.
  */
+
 @Component
 @RequiredArgsConstructor
 public class TeamAnalysisClipDrawingValidator {
@@ -87,7 +90,7 @@ public class TeamAnalysisClipDrawingValidator {
                 .orElseThrow(() -> new CustomException(ErrorCode.TEAM_ANALYSIS_CLIP_DRAWING_NOT_FOUND));
     }
 
-    // 드로잉에 연결된 팀 분석 클립 조회
+    // 드로잉에 연결된 삭제되지 않은 팀 분석 클립 조회
     public TeamVideoClipEntity findConnectedActiveTeamVideoClip(
             TeamVideoClipDrawingEntity drawing
     ) {
@@ -118,13 +121,6 @@ public class TeamAnalysisClipDrawingValidator {
         validateDrawingType(request.getDrawingType());
     }
 
-    // 드로잉 타입 검증
-    private void validateDrawingType(Object drawingType) {
-        if (drawingType == null) {
-            throw new CustomException(ErrorCode.INVALID_DRAWING_DATA);
-        }
-    }
-
     // 드로잉 시간 범위 검증
     public void validateDrawingTimeRange(
             Integer drawingStartTimeSec,
@@ -149,8 +145,13 @@ public class TeamAnalysisClipDrawingValidator {
             throw new CustomException(ErrorCode.TEAM_ANALYSIS_CLIP_NOT_FOUND);
         }
 
-        if (drawingStartTimeSec < teamVideoClip.getStartTimeSec()
-                || drawingEndTimeSec > teamVideoClip.getEndTimeSec()) {
+        int clipDurationSec = teamVideoClip.getEndTimeSec() - teamVideoClip.getStartTimeSec();
+
+        if (clipDurationSec <= 0) {
+            throw new CustomException(ErrorCode.INVALID_CLIP_TIME_RANGE);
+        }
+
+        if (drawingEndTimeSec > clipDurationSec) {
             throw new CustomException(ErrorCode.DRAWING_TIME_OUT_OF_CLIP_RANGE);
         }
     }
@@ -188,5 +189,12 @@ public class TeamAnalysisClipDrawingValidator {
         JsonNode drawingData = convertDrawingDataToJson(drawing.getDrawingData());
 
         return TeamAnalysisClipDrawingResponseDTO.from(drawing, drawingData);
+    }
+
+    // 드로잉 타입 검증
+    private void validateDrawingType(Object drawingType) {
+        if (drawingType == null) {
+            throw new CustomException(ErrorCode.INVALID_DRAWING_DATA);
+        }
     }
 }

@@ -8,12 +8,6 @@
 
 상세 내용은 기능별 요구사항 md 문서와 실제 소스 코드를 기준으로 확인한다.
 
-기능별 상세 요구사항 md 문서는 GitHub `docs/` 경로를 기준으로 확인한다.
-
-```text
-https://github.com/an-sehyeon/soccer-team-management-platform/tree/main/docs
-```
-
 ---
 
 ## 2. 백엔드 기술 스택
@@ -28,7 +22,7 @@ https://github.com/an-sehyeon/soccer-team-management-platform/tree/main/docs
 - JWT 인증
 - 로컬 파일 저장소
 - ffprobe 기반 영상 길이 추출
-- FFmpeg 기반 선수 개인 분석 클립 파일 생성
+- FFmpeg 기반 클립 파일 생성
 - Spring `@Async` 기반 비동기 파일 생성
 
 ---
@@ -118,6 +112,11 @@ GET    /api/match-videos
 POST   /api/management/match-videos
 DELETE /api/coach/match-videos/{matchVideoId}
 
+GET    /api/team-analysis-clips
+POST   /api/management/team-analysis-clips/with-drawings
+PUT    /api/management/team-analysis-clips/{teamClipId}/with-drawings
+DELETE /api/coach/team-analysis-clips/{teamClipId}
+
 GET    /api/management/player-analysis-clips
 GET    /api/player/me/player-analysis-clips
 DELETE /api/coach/player-analysis-clips/{playerClipId}
@@ -158,8 +157,6 @@ is_deleted = true: 삭제 처리된 데이터
 
 일반 목록/상세 조회에서는 삭제 데이터를 제외한다.
 
-단, 영상 파일과 연결되는 클립 정책은 기능별 요구사항을 따른다.
-
 ---
 
 ## 8. 경기 영상 정책
@@ -185,103 +182,58 @@ DB의 `game_video_upload.url`에는 재생 가능한 접근 URL을 저장한다.
 
 경기 영상 삭제는 소프트 삭제다.
 
-초기 MVP에서는 실제 경기 영상 파일은 삭제하지 않는다.
-
-운영 전에는 `/uploads/match-videos/**` 직접 접근 구조를 권한 검증이 포함된 스트리밍 API 또는 Signed URL 방식으로 전환해야 한다.
+초기 MVP에서는 실제 영상 파일은 삭제하지 않는다.
 
 ---
 
-## 9. 팀 분석 클립 현재 정책
+## 9. 팀 분석 클립 최신 정책
 
-현재 팀 분석 클립은 원본 경기 영상 기준 `startTimeSec`, `endTimeSec` 메타데이터로 관리한다.
+팀 분석 클립은 이제 원본 경기 영상 URL + 시간 메타데이터 구간 재생 구조가 아니라 실제 mp4 파일 생성 구조를 사용한다.
 
-현재 구조는 다음과 같다.
+기본 흐름은 다음과 같다.
 
-```text
-team_video_clip.upload_id = 원본 경기 영상 ID
-team_video_clip.start_time_sec = 원본 경기 영상 기준 시작 시간
-team_video_clip.end_time_sec = 원본 경기 영상 기준 종료 시간
-team_video_clip.url = 현재는 null 또는 추후 클립 URL
-```
-
-팀 분석 클립도 다음 작업에서 선수 개인 분석 클립과 동일하게 실제 mp4 클립 파일 생성 구조로 전환한다.
-
-전환 전 반드시 확인해야 할 항목은 다음과 같다.
-
-```text
-team_video_clip 테이블에 url/status 컬럼이 실제로 존재하는지
-TeamVideoClipEntity에 url/status 필드가 있는지
-TeamAnalysisClipDetailResponseDTO가 teamClipUrl/status/startTimeSec/endTimeSec를 내려줄 수 있는지
-팀 분석 클립 수정 시 기존 파일 삭제/새 파일 생성 정책이 필요한지
-팀 분석 클립 드로잉 시간이 현재 원본 기준인지 클립 기준인지
-팀 분석 클립 + 드로잉 통합 등록 API가 이미 있는지
-```
-
----
-
-## 10. 선수 개인 분석 클립 파일 생성 정책
-
-선수 개인 분석 클립은 이제 원본 경기 영상 URL과 시간 메타데이터로 구간 재생하지 않는다.
-
-생성 시 실제 mp4 파일을 비동기로 생성한다.
-
-생성 흐름은 다음과 같다.
-
-1. `COACH` 또는 `ANALYST`가 생성 API를 호출한다.
-2. 백엔드는 원본 경기 영상, 대상 선수, 클립 시간, 드로잉 목록을 검증한다.
-3. `player_video_clip` row를 `PROCESSING` 상태로 저장한다.
-4. 통합 등록인 경우 `player_video_clip_drawing` row를 함께 저장한다.
+1. `COACH` 또는 `ANALYST`가 통합 생성 API를 호출한다.
+2. 백엔드는 원본 경기 영상, 클립 시간, 드로잉 목록을 검증한다.
+3. `team_video_clip` row를 `PROCESSING` 상태로 저장한다.
+4. `team_video_clip_drawing` row를 함께 저장한다.
 5. 트랜잭션 커밋 후 FFmpeg 비동기 작업을 실행한다.
-6. 성공 시 `player_video_clip.url`에 생성된 클립 파일 URL을 저장한다.
-7. 성공 시 `status = READY`로 변경한다.
-8. 실패 시 `status = FAILED`로 변경한다.
+6. FFmpeg로 원본 경기 영상 구간을 잘라낸다.
+7. 성공 시 `team_video_clip.url`에 생성된 클립 파일 URL을 저장한다.
+8. 성공 시 `status = READY`로 변경한다.
+9. 실패 시 `status = FAILED`로 변경한다.
 
-생성된 선수 개인 분석 클립 파일은 로컬 개발 기준 다음 경로에 저장한다.
+주요 API는 다음과 같다.
 
-```text
-backend/uploads/player-analysis-clips
+```http
+GET  /api/team-analysis-clips
+GET  /api/team-analysis-clips/{teamClipId}
+GET  /api/team-analysis-clips/{teamClipId}/drawings
+POST /api/management/team-analysis-clips/with-drawings
+PUT  /api/management/team-analysis-clips/{teamClipId}/with-drawings
 ```
 
-DB의 `player_video_clip.url`에는 브라우저 접근용 URL을 저장한다.
+목록 조회 정책은 다음과 같다.
 
-예시는 다음과 같다.
+- 목록 조회는 `READY` 상태만 반환한다.
+- `PROCESSING`, `FAILED`는 일반 목록에서 노출하지 않는다.
+- 실패 클립 관리는 추후 별도 관리자용 화면에서 검토한다.
+- `matchVideoId` 조건 조회를 지원한다.
+- `clipType` 조건 조회를 지원한다.
+- `clipType`은 Controller에서 String으로 받고 Validator에서 Enum으로 변환한다.
+- 잘못된 `clipType`은 400 에러로 처리한다.
 
-```text
-/uploads/player-analysis-clips/player-clip-{id}-{uuid}.mp4
-```
-
-상세 재생 기준은 다음 필드다.
-
-```text
-playerClipUrl
-```
-
-`playerClipUrl`은 DB의 `player_video_clip.url`에서 내려온다.
-
-`player_video_clip.start_time_sec`, `player_video_clip.end_time_sec`는 DB와 Entity에 유지한다.
-
-이 값은 원본 경기 영상에서 어떤 구간을 잘라냈는지 기록하는 생성 이력, 수정 폼 초기값, 파일 재생성 요청용 메타데이터다.
-
-프론트 상세 재생에는 사용하지 않는다.
-
----
-
-## 11. 선수 개인 분석 클립 상세 응답 정책
-
-선수 개인 분석 클립 상세 응답에는 다음 필드를 포함한다.
+상세 조회 응답에는 다음 필드가 포함되어야 한다.
 
 ```text
-playerClipId
+teamClipId
 matchVideoId
 matchVideoTitle
-playerClipUrl
-playerId
-playerName
 clipType
 title
 comment
 startTimeSec
 endTimeSec
+teamClipUrl
 status
 editorId
 editorName
@@ -289,110 +241,126 @@ createdAt
 updatedAt
 ```
 
-주의할 점은 다음과 같다.
+---
+
+## 10. 팀 분석 클립 DB 정책
+
+`team_video_clip`의 주요 필드는 다음과 같다.
 
 ```text
-startTimeSec/endTimeSec는 상세 재생용이 아니다.
-startTimeSec/endTimeSec는 수정 폼 초기값과 파일 재생성 요청용이다.
-상세 재생은 playerClipUrl 기준으로 처리한다.
-목록 응답에는 startTimeSec/endTimeSec를 포함하지 않는다.
+id
+upload_id
+member_id
+clip_type
+title
+comment
+start_time_sec
+end_time_sec
+url
+status
+is_deleted
+created_at
+updated_at
 ```
 
-현재 `PlayerAnalysisClipDetailResponseDTO`는 `PlayerVideoClipEntity`를 받아 `from()` 정적 팩토리 메서드로 생성하는 구조를 사용한다.
+정책은 다음과 같다.
 
-Service에서는 생성자를 직접 호출하지 않고 다음 구조를 사용한다.
+- `start_time_sec`, `end_time_sec`는 원본 경기 영상 기준 초다.
+- `url`은 생성된 팀 분석 클립 mp4 접근 URL이다.
+- `status`는 PROCESSING, READY, FAILED를 사용한다.
+- 삭제는 소프트 삭제다.
 
-```java
-return PlayerAnalysisClipDetailResponseDTO.from(playerVideoClip);
+`team_video_clip_drawing`의 주요 필드는 다음과 같다.
+
+```text
+id
+team_video_clip_id
+member_id
+drawing_type
+start_time_sec
+end_time_sec
+drawing_data
+is_deleted
+created_at
+updated_at
+```
+
+드로잉 시간 기준은 생성된 팀 분석 클립 영상 기준 초다.
+
+예시는 다음과 같다.
+
+```text
+원본 경기 영상 100초 ~ 115초를 잘라 15초 팀 분석 클립 생성
+드로잉은 2초 ~ 6초처럼 클립 내부 시간 기준으로 저장
 ```
 
 ---
 
-## 12. 선수 개인 분석 클립 API 정책
+## 11. 팀 분석 클립 수정 정책
 
-관리자성 목록 조회는 다음 API를 사용한다.
-
-```http
-GET /api/management/player-analysis-clips
-```
-
-선수 본인 목록 조회는 다음 API를 사용한다.
+팀 분석 클립과 드로잉은 통합 수정 API로 처리한다.
 
 ```http
-GET /api/player/me/player-analysis-clips
+PUT /api/management/team-analysis-clips/{teamClipId}/with-drawings
 ```
 
-관리자성 상세 조회는 다음 API를 사용한다.
+정책은 다음과 같다.
 
-```http
-GET /api/management/player-analysis-clips/{playerClipId}
-```
+- `COACH`, `ANALYST`만 호출 가능하다.
+- `PLAYER`는 호출 불가다.
+- `PROCESSING` 상태에서는 수정할 수 없다.
+- `FAILED` 상태는 수정 저장을 통해 재생성을 요청할 수 있다.
+- 드로잉은 전체 교체 방식으로 처리한다.
+- 기존 드로잉은 소프트 삭제한다.
+- 요청 드로잉을 새로 저장한다.
+- 제목/코멘트/드로잉만 변경하면 기존 mp4 파일을 유지한다.
+- 시작/종료 시간이 변경되면 mp4 파일을 재생성한다.
 
-선수 본인 상세 조회는 다음 API를 사용한다.
+---
 
-```http
-GET /api/player/me/player-analysis-clips/{playerClipId}
-```
+## 12. 선수 개인 분석 클립 정책
 
-선수 개인 분석 클립과 드로잉 통합 생성 API는 다음과 같다.
+선수 개인 분석 클립도 실제 mp4 파일 비동기 생성 구조가 구현되어 있다.
+
+기본 흐름은 다음과 같다.
+
+1. `COACH` 또는 `ANALYST`가 생성 API를 호출한다.
+2. 백엔드는 원본 경기 영상, 대상 선수, 클립 시간, 드로잉 목록을 검증한다.
+3. `player_video_clip` row를 `PROCESSING` 상태로 저장한다.
+4. 필요 시 `player_video_clip_drawing` row를 함께 저장한다.
+5. 트랜잭션 커밋 후 FFmpeg 비동기 작업을 실행한다.
+6. 성공 시 `player_video_clip.url`에 생성된 클립 파일 URL을 저장한다.
+7. 성공 시 `status = READY`로 변경한다.
+8. 실패 시 `status = FAILED`로 변경한다.
+
+주요 API는 다음과 같다.
 
 ```http
 POST /api/management/player-analysis-clips/with-drawings
 ```
 
-요청 데이터는 다음을 포함한다.
+선수 개인 분석 클립의 상세 재생 기준은 다음 필드다.
 
 ```text
-matchVideoId
-playerId
-clipType
-title
-comment
-startTimeSec
-endTimeSec
-drawings[]
+playerClipUrl
 ```
 
-`drawings[]` 항목은 다음을 포함한다.
+`player_video_clip.start_time_sec`, `player_video_clip.end_time_sec`는 DB와 Entity에는 유지한다.
 
-```text
-drawingType
-startTimeSec
-endTimeSec
-drawingData
-```
-
-수정 API는 다음과 같다.
-
-```http
-PATCH /api/management/player-analysis-clips/{playerClipId}
-```
-
-수정 시 새 mp4 파일을 비동기로 재생성한다.
-
-기존 파일은 수정 요청 시점에 삭제하지 않고, 새 파일 생성 성공 후 삭제한다.
-
-삭제 API는 다음과 같다.
-
-```http
-DELETE /api/coach/player-analysis-clips/{playerClipId}
-```
-
-삭제는 `COACH`만 가능하다.
+이 값은 원본 경기 영상에서 어떤 구간을 잘라냈는지 기록하는 생성 이력, 재생성, 디버깅용 메타데이터다.
 
 ---
 
-## 13. 선수 개인 분석 클립 상태 정책
+## 13. 상태 정책
 
-선수 개인 분석 클립 파일 생성 구조에서는 다음 상태를 사용한다.
+팀 분석 클립과 선수 개인 분석 클립 파일 생성 구조에서는 다음 상태를 사용한다.
 
 | 상태 | 의미 |
 |---|---|
 | `PROCESSING` | 클립 파일 생성 중 |
 | `READY` | 클립 파일 생성 완료, 재생 가능 |
 | `FAILED` | 클립 파일 생성 실패 |
-
-기존 `UPLOADING` 상태는 기존 경기 영상 업로드 또는 기존 코드 호환용으로 유지할 수 있다.
+| `UPLOADING` | 기존 경기 영상 업로드 또는 기존 코드 호환용 |
 
 프론트에서는 다음 기준으로 처리한다.
 
@@ -408,7 +376,7 @@ FAILED
 → 드로잉 렌더링 막기
 
 READY
-→ playerClipUrl 기준으로 영상 재생
+→ 생성된 클립 URL 기준으로 영상 재생
 → 드로잉 오버레이 렌더링 가능
 ```
 
@@ -437,21 +405,7 @@ TEXT
 
 드로잉 데이터는 프론트 캔버스에서 생성한 좌표, 텍스트, 색상, 두께 등을 JSON으로 저장한다.
 
-선수 개인 분석 클립 드로잉은 생성된 클립 영상 기준 시간으로 저장한다.
-
-```text
-player_video_clip.start_time_sec = 원본 경기 영상 기준 시작 시간
-player_video_clip.end_time_sec = 원본 경기 영상 기준 종료 시간
-player_video_clip_drawing.start_time_sec = 생성된 클립 영상 기준 시작 시간
-player_video_clip_drawing.end_time_sec = 생성된 클립 영상 기준 종료 시간
-```
-
-예시는 다음과 같다.
-
-```text
-원본 영상 755초~790초를 잘라 35초 클립 생성
-드로잉은 3초~8초처럼 클립 내부 시간 기준으로 저장
-```
+드로잉 시간 기준은 생성된 클립 영상 기준 초다.
 
 검증 기준은 다음과 같다.
 
@@ -464,46 +418,107 @@ drawingStartTimeSec < drawingEndTimeSec
 `clipDurationSec`는 다음으로 계산한다.
 
 ```text
-player_video_clip.end_time_sec - player_video_clip.start_time_sec
+clip.end_time_sec - clip.start_time_sec
 ```
 
 ---
 
-## 15. 정적 리소스 접근 정책
+## 15. 파일 저장 정책
 
-로컬 개발 환경에서는 업로드 파일을 브라우저에서 확인하기 위해 정적 리소스 접근을 허용한다.
-
-현재 개발용 접근 경로는 다음과 같다.
+로컬 개발 기준 저장 경로는 다음과 같다.
 
 ```text
-/uploads/match-videos/**
-/uploads/player-analysis-clips/**
+backend/uploads/match-videos
+backend/uploads/team-analysis-clips
+backend/uploads/player-analysis-clips
 ```
 
-`SecurityConfig`와 `WebConfig`에서 위 경로를 매핑한다.
+DB의 클립 `url`에는 브라우저 접근용 URL을 저장한다.
 
-단, 이 방식은 개발 편의용이다.
-
-운영 전에는 반드시 다음 중 하나로 전환해야 한다.
+예시는 다음과 같다.
 
 ```text
-인증 기반 스트리밍 API
-Signed URL
-CDN Signed URL
-권한 검증이 포함된 파일 다운로드/재생 API
+/uploads/match-videos/{storedFileName}
+/uploads/team-analysis-clips/team-clip-{id}-{uuid}.mp4
+/uploads/player-analysis-clips/player-clip-{id}-{uuid}.mp4
 ```
 
-선수 개인 분석 클립은 개인 접근 제어가 중요하므로 운영 배포 전 정적 파일 직접 접근 구조를 제거하거나 보호해야 한다.
+운영 전에는 `/uploads/**` 직접 접근 구조를 권한 검증이 포함된 스트리밍 API 또는 Signed URL 방식으로 전환해야 한다.
 
 ---
 
-## 16. 비동기 작업 정책
+## 16. CORS 정책
 
-현재 선수 개인 분석 클립 파일 생성은 Spring `@Async` 기반으로 시작한다.
+프론트 개발 서버는 다음 Origin을 사용한다.
 
-비동기 작업은 파일 생성 책임과 DB 상태 업데이트 책임을 분리한다.
+```text
+http://localhost:5173
+```
 
-FFmpeg 실패 시 API 요청 자체를 되돌리지 않고, 클립 상태를 `FAILED`로 변경한다.
+Spring Security 환경에서는 `SecurityConfig`의 CORS 설정이 중요하다.
+
+개발 기준 CORS 허용 메서드는 다음과 같다.
+
+```text
+GET
+POST
+PUT
+PATCH
+DELETE
+OPTIONS
+```
+
+요청 헤더는 다음을 허용한다.
+
+```text
+Authorization
+Content-Type
+```
+
+노출 헤더는 다음을 허용한다.
+
+```text
+Authorization
+```
+
+`OPTIONS /**`는 `permitAll`로 허용한다.
+
+실제 관리 API 요청은 기존처럼 JWT 인증을 타야 한다.
+
+---
+
+## 17. 예외 정책
+
+공통 예외 응답은 `ErrorResponse`와 `ErrorCode`를 사용한다.
+
+주요 예외는 다음과 같다.
+
+```text
+MATCH_VIDEO_NOT_FOUND
+MATCH_VIDEO_DURATION_NOT_READY
+INVALID_CLIP_TIME_RANGE
+INVALID_TEAM_ANALYSIS_CLIP_TYPE
+TEAM_ANALYSIS_CLIP_NOT_FOUND
+TEAM_ANALYSIS_CLIP_PROCESSING_CANNOT_UPDATE
+TEAM_ANALYSIS_CLIP_DIRECTORY_CREATE_FAILED
+TEAM_ANALYSIS_CLIP_ORIGINAL_FILE_NOT_FOUND
+TEAM_ANALYSIS_CLIP_FILE_GENERATION_FAILED
+PLAYER_NOT_FOUND
+INVALID_PLAYER_ROLE
+PLAYER_ANALYSIS_CLIP_NOT_FOUND
+INVALID_DRAWING_TIME_RANGE
+FORBIDDEN
+```
+
+새 예외가 필요하면 `ErrorCode`에 추가하고 요구사항 문서에 반영한다.
+
+---
+
+## 18. 비동기 작업 정책
+
+초기 운영형 구조는 Spring `@Async` 기반으로 시작한다.
+
+단, 추후 확장을 위해 비동기 작업 서비스는 분리한다.
 
 추후 확장 후보는 다음과 같다.
 
@@ -516,45 +531,30 @@ FFmpeg 실패 시 API 요청 자체를 되돌리지 않고, 클립 상태를 `FA
 - 썸네일 생성
 - CDN 업로드
 
----
+파일 생성 작업과 DB 업데이트는 실패 처리를 명확히 분리한다.
 
-## 17. 예외 정책
-
-공통 예외 응답은 `ErrorResponse`와 `ErrorCode`를 사용한다.
-
-주요 예외 후보는 다음과 같다.
-
-```text
-MATCH_VIDEO_NOT_FOUND
-MATCH_VIDEO_DURATION_NOT_READY
-INVALID_CLIP_TIME_RANGE
-PLAYER_NOT_FOUND
-INVALID_PLAYER_ROLE
-PLAYER_ANALYSIS_CLIP_NOT_FOUND
-INVALID_DRAWING_TIME_RANGE
-FORBIDDEN
-```
-
-새 예외가 필요하면 `ErrorCode`에 추가하고 요구사항 문서에 반영한다.
+FFmpeg 실패 시 API 요청 자체를 되돌리지 않고, 클립 상태를 `FAILED`로 변경한다.
 
 ---
 
-## 18. 코드 작성 규칙
+## 19. 코드 작성 규칙
 
 코드는 짧게 쓰는 것보다 가독성을 우선한다.
 
 클래스와 메서드 이름은 역할이 드러나게 작성한다.
 
-예시는 다음과 같다.
+예시:
 
 ```java
+createTeamAnalysisClipWithDrawings()
+updateTeamAnalysisClipWithDrawings()
+generateTeamAnalysisClipFile()
+markTeamClipGenerationFailed()
 createPlayerAnalysisClipWithDrawings()
-requestPlayerClipFileGeneration()
 generatePlayerAnalysisClipFile()
-markPlayerClipGenerationFailed()
 ```
 
-피해야 할 이름은 다음과 같다.
+피해야 할 이름:
 
 ```java
 doSave()
@@ -566,42 +566,30 @@ chk()
 
 ---
 
-## 19. 다음 백엔드 작업
+## 20. 다음 백엔드 작업 시작 시 필요한 파일
 
-다음 백엔드 작업은 다음이다.
+다음 작업은 선수 개인 분석 클립 화면 구조를 팀 분석 클립 편집기 방식으로 맞추는 프론트 중심 작업이다.
 
-```text
-팀 분석 클립/드로잉 실제 파일 재생 구조로 통일
-```
-
-핵심 방향은 다음과 같다.
-
-- 팀 분석 클립도 실제 mp4 파일을 비동기로 생성한다.
-- 상세 재생은 원본 영상 URL + `startTimeSec/endTimeSec`가 아니라 `teamClipUrl` 기준으로 처리한다.
-- `PROCESSING`, `READY`, `FAILED` 상태를 반영한다.
-- 팀 분석 드로잉 시간은 생성된 팀 분석 클립 기준 초로 저장하고 표시한다.
-- 팀 분석 클립 등록 시 드로잉을 함께 저장하는 통합 API 필요 여부를 확인한다.
-- `COACH`는 등록/조회/수정/삭제 가능, `ANALYST`는 등록/조회/수정 가능, `PLAYER`는 조회만 가능하게 유지한다.
-
-다음 작업을 시작할 때 우선 확인할 파일은 다음과 같다.
+필요하면 다음 백엔드 파일을 참고한다.
 
 ```text
-TeamAnalysisClipController.java
-TeamAnalysisClipDrawingController.java
-TeamAnalysisClipService.java
-TeamVideoClipEntity.java
-TeamVideoClipDrawingEntity.java
-TeamVideoClipRepository.java
-TeamVideoClipDrawingRepository.java
-teamclip 관련 Request DTO
-teamclip 관련 Response DTO
-teamclipdrawing 관련 Request DTO
-teamclipdrawing 관련 Response DTO
-GameVideoUploadEntity.java
+PlayerAnalysisClipController.java
+PlayerAnalysisClipService.java
+PlayerAnalysisClipValidator.java
+PlayerVideoClipEntity.java
+PlayerVideoClipRepository.java
+PlayerClipDrawingController.java
+PlayerClipDrawingService.java
+PlayerClipDrawingValidator.java
+PlayerVideoClipDrawingEntity.java
+PlayerVideoClipDrawingRepository.java
+PlayerAnalysisClipDetailResponseDTO.java
+PlayerAnalysisClipListResponseDTO.java
+CreatePlayerAnalysisClipWithDrawingsRequestDTO.java
+CreatePlayerAnalysisClipWithDrawingsResponseDTO.java
+CreatePlayerAnalysisClipDrawingItemRequestDTO.java
 VideoUploadStatusEnum.java
 ErrorCode.java
-SecurityConfig.java
-WebConfig.java
 application.properties
 ```
 

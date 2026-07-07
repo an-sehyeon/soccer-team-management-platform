@@ -4,6 +4,8 @@ import com.soccer.platform.common.constants.DrawingTypeEnum;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,11 +17,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
+/*
  * 팀 분석 클립 드로잉 엔티티
- *
- * 팀 분석 클립 위에 표시할 선, 화살표, 원, 박스, 영역, 텍스트 데이터를 저장한다.
- * 드로잉은 원본 영상 기준 시작/종료 시간 동안만 화면에 표시된다.
+ * 팀 분석 클립 위에 표시할 선, 화살표, 원, 박스, 영역, 텍스트 데이터를 저장
+ * 드로잉 시간은 생성된 팀 분석 클립 영상 기준 초로 저장
  */
 @Entity
 @Table(name = "team_video_clip_drawing")
@@ -41,6 +42,7 @@ public class TeamVideoClipDrawingEntity extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private MemberEntity member;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "drawing_type", nullable = false, length = 20)
     private DrawingTypeEnum drawingType;
 
