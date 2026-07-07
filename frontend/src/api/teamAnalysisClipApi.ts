@@ -1,13 +1,17 @@
 // 팀 분석 클립 관련 백엔드 API 호출 함수를 관리하는 파일
-
 import { axiosInstance } from "./axiosInstance";
+
 import type {
   CreateTeamAnalysisClipRequest,
   CreateTeamAnalysisClipResponse,
+  CreateTeamAnalysisClipWithDrawingsRequest,
+  CreateTeamAnalysisClipWithDrawingsResponse,
   TeamAnalysisClipDetailResponse,
   TeamAnalysisClipPageResponse,
   TeamAnalysisClipSearchParams,
   UpdateTeamAnalysisClipRequest,
+  UpdateTeamAnalysisClipWithDrawingsRequest,
+  UpdateTeamAnalysisClipWithDrawingsResponse,
 } from "../types/teamAnalysisClip";
 
 export const getTeamAnalysisClips = async (
@@ -44,6 +48,18 @@ export const createTeamAnalysisClip = async (
   return response.data;
 };
 
+export const createTeamAnalysisClipWithDrawings = async (
+  request: CreateTeamAnalysisClipWithDrawingsRequest,
+): Promise<CreateTeamAnalysisClipWithDrawingsResponse> => {
+  const response =
+    await axiosInstance.post<CreateTeamAnalysisClipWithDrawingsResponse>(
+      "/api/management/team-analysis-clips/with-drawings",
+      request,
+    );
+
+  return response.data;
+};
+
 export const updateTeamAnalysisClip = async (
   teamClipId: number,
   request: UpdateTeamAnalysisClipRequest,
@@ -52,6 +68,19 @@ export const updateTeamAnalysisClip = async (
     `/api/management/team-analysis-clips/${teamClipId}`,
     request,
   );
+
+  return response.data;
+};
+
+export const updateTeamAnalysisClipWithDrawings = async (
+  teamClipId: number,
+  request: UpdateTeamAnalysisClipWithDrawingsRequest,
+): Promise<UpdateTeamAnalysisClipWithDrawingsResponse> => {
+  const response =
+    await axiosInstance.put<UpdateTeamAnalysisClipWithDrawingsResponse>(
+      `/api/management/team-analysis-clips/${teamClipId}/with-drawings`,
+      request,
+    );
 
   return response.data;
 };

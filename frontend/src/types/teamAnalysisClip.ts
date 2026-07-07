@@ -1,4 +1,8 @@
 // 팀 분석 클립 API 요청/응답 타입을 정의하는 파일
+import type {
+  CreateTeamAnalysisClipDrawingRequest,
+  TeamAnalysisClipDrawingResponse,
+} from "./teamAnalysisClipDrawing";
 
 export type TeamAnalysisClipType =
   | "HIGHLIGHT"
@@ -10,7 +14,11 @@ export type TeamAnalysisClipType =
   | "SETPIECE"
   | "ETC";
 
-export type TeamAnalysisClipStatus = "UPLOADING" | "READY" | "FAILED";
+export type TeamAnalysisClipStatus =
+  | "UPLOADING"
+  | "PROCESSING"
+  | "READY"
+  | "FAILED";
 
 export type TeamAnalysisClipPageResponse = {
   teamAnalysisClips: TeamAnalysisClipListItem[];
@@ -26,20 +34,22 @@ export type TeamAnalysisClipListItem = {
   matchVideoTitle: string;
   clipType: TeamAnalysisClipType;
   title: string;
-  startTimeSec: number;
-  endTimeSec: number;
+  comment: string | null;
   status: TeamAnalysisClipStatus;
   editorId: number;
   editorName: string;
+  startTimeSec: number;
+  endTimeSec: number;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type TeamAnalysisClipDetailResponse = {
   teamClipId: number;
   matchVideoId: number;
-  matchVideoUrl: string;
   matchVideoTitle: string;
-  matchVideoDurationSec: number;
+  matchVideoUrl: string | null;
+  teamClipUrl: string | null;
   clipType: TeamAnalysisClipType;
   title: string;
   comment: string | null;
@@ -69,10 +79,54 @@ export type UpdateTeamAnalysisClipRequest = {
   endTimeSec: number;
 };
 
+export type CreateTeamAnalysisClipWithDrawingsRequest = {
+  matchVideoId: number;
+  clipType: TeamAnalysisClipType;
+  title: string;
+  comment: string | null;
+  startTimeSec: number;
+  endTimeSec: number;
+  drawings: CreateTeamAnalysisClipDrawingRequest[];
+};
+
+export type UpdateTeamAnalysisClipWithDrawingsRequest = {
+  clipType: TeamAnalysisClipType;
+  title: string;
+  comment: string | null;
+  startTimeSec: number;
+  endTimeSec: number;
+  drawings: CreateTeamAnalysisClipDrawingRequest[];
+};
+
 export type CreateTeamAnalysisClipResponse = {
   teamClipId: number;
+  status: TeamAnalysisClipStatus;
   message: string;
 };
+
+export type CreateTeamAnalysisClipWithDrawingsResponse = {
+  teamClipId: number;
+  status: TeamAnalysisClipStatus;
+  message: string;
+};
+
+export type UpdateTeamAnalysisClipWithDrawingsResponse = {
+  teamClipId: number;
+  status: TeamAnalysisClipStatus;
+  fileGenerationRequested: boolean;
+  message: string;
+};
+
+export type TeamAnalysisClipEditorForm = {
+  matchVideoId: number;
+  clipType: TeamAnalysisClipType;
+  title: string;
+  comment: string;
+  startTimeSec: number;
+  endTimeSec: number;
+};
+
+export type TeamAnalysisClipEditorDrawing = TeamAnalysisClipDrawingResponse;
 
 export type TeamAnalysisClipSearchParams = {
   page: number;
