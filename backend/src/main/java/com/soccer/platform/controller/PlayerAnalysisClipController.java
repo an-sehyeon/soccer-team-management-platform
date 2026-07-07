@@ -1,6 +1,7 @@
 package com.soccer.platform.controller;
 
 import org.springframework.data.domain.PageRequest;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,6 +25,8 @@ import com.soccer.platform.dto.playerclip.CreatePlayerAnalysisClipWithDrawingsRe
 import com.soccer.platform.dto.playerclip.PlayerAnalysisClipDetailResponseDTO;
 import com.soccer.platform.dto.playerclip.PlayerAnalysisClipPageResponseDTO;
 import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipRequestDTO;
+import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipWithDrawingsRequestDTO;
+import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipWithDrawingsResponseDTO;
 import com.soccer.platform.security.CustomUserPrincipal;
 import com.soccer.platform.service.playerclip.PlayerAnalysisClipService;
 
@@ -116,6 +120,23 @@ public class PlayerAnalysisClipController {
 		);
 
 		return ResponseEntity.ok(response);
+	}
+	
+	// 선수 개인 분석 클립과 드로잉 통합 수정
+	@PutMapping("/management/player-analysis-clips/{playerClipId}/with-drawings")
+	public ResponseEntity<UpdatePlayerAnalysisClipWithDrawingsResponseDTO> updatePlayerAnalysisClipWithDrawings(
+	        @PathVariable(name = "playerClipId") Integer playerClipId,
+	        @RequestBody UpdatePlayerAnalysisClipWithDrawingsRequestDTO request,
+	        @AuthenticationPrincipal CustomUserPrincipal principal
+	) {
+	    UpdatePlayerAnalysisClipWithDrawingsResponseDTO response =
+	            playerAnalysisClipService.updatePlayerAnalysisClipWithDrawings(
+	                    playerClipId,
+	                    request,
+	                    principal
+	            );
+
+	    return ResponseEntity.ok(response);
 	}
 
 	// 선수 개인 분석 클립 삭제

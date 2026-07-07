@@ -1,5 +1,4 @@
 // 선수 개인 분석 클립 관련 백엔드 API 호출 함수를 관리하는 파일
-
 import { axiosInstance } from "./axiosInstance";
 import type {
   CreatePlayerAnalysisClipRequest,
@@ -11,6 +10,8 @@ import type {
   PlayerAnalysisClipSearchParams,
   PlayerSelectItem,
   UpdatePlayerAnalysisClipRequest,
+  UpdatePlayerAnalysisClipWithDrawingsRequest,
+  UpdatePlayerAnalysisClipWithDrawingsResponse,
 } from "../types/playerAnalysisClip";
 
 // 관리용 선수 선택 목록 조회
@@ -28,9 +29,7 @@ export const getManagementPlayerAnalysisClips = async (
 ): Promise<PlayerAnalysisClipPageResponse> => {
   const response = await axiosInstance.get<PlayerAnalysisClipPageResponse>(
     "/api/management/player-analysis-clips",
-    {
-      params,
-    },
+    { params },
   );
 
   return response.data;
@@ -42,9 +41,7 @@ export const getMyPlayerAnalysisClips = async (
 ): Promise<PlayerAnalysisClipPageResponse> => {
   const response = await axiosInstance.get<PlayerAnalysisClipPageResponse>(
     "/api/player/me/player-analysis-clips",
-    {
-      params,
-    },
+    { params },
   );
 
   return response.data;
@@ -106,6 +103,20 @@ export const updatePlayerAnalysisClip = async (
     `/api/management/player-analysis-clips/${playerClipId}`,
     request,
   );
+
+  return response.data;
+};
+
+// 선수 개인 분석 클립과 드로잉 통합 수정
+export const updatePlayerAnalysisClipWithDrawings = async (
+  playerClipId: number,
+  request: UpdatePlayerAnalysisClipWithDrawingsRequest,
+): Promise<UpdatePlayerAnalysisClipWithDrawingsResponse> => {
+  const response =
+    await axiosInstance.put<UpdatePlayerAnalysisClipWithDrawingsResponse>(
+      `/api/management/player-analysis-clips/${playerClipId}/with-drawings`,
+      request,
+    );
 
   return response.data;
 };

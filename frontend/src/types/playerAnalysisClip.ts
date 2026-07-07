@@ -1,5 +1,4 @@
 // 선수 개인 분석 클립 API 요청/응답 타입을 정의하는 파일
-
 import type {
   PlayerAnalysisClipDrawingData,
   PlayerAnalysisClipDrawingType,
@@ -71,6 +70,16 @@ export type PlayerAnalysisClipDetailResponse = {
   updatedAt: string;
 };
 
+export type PlayerAnalysisClipEditorForm = {
+  matchVideoId: number;
+  playerId: number;
+  clipType: PlayerAnalysisClipType;
+  title: string;
+  comment: string;
+  startTimeSec: number;
+  endTimeSec: number;
+};
+
 export type CreatePlayerAnalysisClipRequest = {
   matchVideoId: number;
   playerId: number;
@@ -117,6 +126,23 @@ export type CreatePlayerAnalysisClipWithDrawingsRequest = {
 export type CreatePlayerAnalysisClipWithDrawingsResponse = {
   playerClipId: number;
   status: PlayerAnalysisClipStatus;
+  message: string;
+};
+
+export type UpdatePlayerAnalysisClipWithDrawingsRequest = {
+  playerId: number;
+  clipType: PlayerAnalysisClipType;
+  title: string;
+  comment: string | null;
+  startTimeSec: number;
+  endTimeSec: number;
+  drawings: CreatePlayerAnalysisClipDrawingItemRequest[];
+};
+
+export type UpdatePlayerAnalysisClipWithDrawingsResponse = {
+  playerClipId: number;
+  status: PlayerAnalysisClipStatus;
+  fileGenerationRequested: boolean;
   message: string;
 };
 

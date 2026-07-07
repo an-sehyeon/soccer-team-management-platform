@@ -2,26 +2,26 @@
 export const ROUTES = {
   LOGIN: "/login",
   SIGN_UP: "/sign-up",
-
   DASHBOARD: "/dashboard",
   PLAYER: "/player",
   MOBILE: "/mobile",
-
   MEMBER_APPROVAL: "/dashboard/member-approval",
-
   SCHEDULE: "/schedules",
   NOTICE: "/notices",
-
   MATCH_VIDEO: "/match-videos",
   MATCH_VIDEO_CREATE: "/match-videos/new",
-
   TEAM_ANALYSIS_CLIP: "/team-analysis-clips",
   TEAM_ANALYSIS_CLIP_CREATE: "/team-analysis-clips/new",
   TEAM_ANALYSIS_CLIP_EDIT: "/team-analysis-clips/:teamClipId/edit",
-
   PLAYER_ANALYSIS_CLIP: "/player-analysis-clips",
+  PLAYER_ANALYSIS_CLIP_CREATE: "/player-analysis-clips/new",
+  PLAYER_ANALYSIS_CLIP_EDIT: "/player-analysis-clips/:playerClipId/edit",
 } as const;
 
 export function createTeamAnalysisClipEditRoute(teamClipId: number) {
   return `/team-analysis-clips/${teamClipId}/edit`;
+}
+
+export function createPlayerAnalysisClipEditRoute(playerClipId: number) {
+  return `/player-analysis-clips/${playerClipId}/edit`;
 }

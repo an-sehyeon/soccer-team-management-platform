@@ -1,6 +1,5 @@
 // 앱 전체 라우팅 구조를 정의하는 파일
 import { Navigate, Route, Routes } from "react-router-dom";
-
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardHomePage } from "./pages/DashboardHomePage";
@@ -19,6 +18,7 @@ import MatchVideoCreatePage from "./pages/MatchVideoCreatePage.tsx";
 import TeamAnalysisClipPage from "./pages/TeamAnalysisClipPage.tsx";
 import TeamAnalysisClipEditorPage from "./pages/TeamAnalysisClipEditorPage.tsx";
 import PlayerAnalysisClipPage from "./pages/PlayerAnalysisClipPage.tsx";
+import PlayerAnalysisClipEditorPage from "./pages/PlayerAnalysisClipEditorPage.tsx";
 
 function App() {
   return (
@@ -55,17 +55,6 @@ function App() {
       />
 
       <Route
-        path={ROUTES.MEMBER_APPROVAL}
-        element={
-          <ProtectedRoute>
-            <AdminOnlyRoute>
-              <AdminMemberApprovalPage />
-            </AdminOnlyRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
         path={ROUTES.PLAYER}
         element={
           <ProtectedRoute>
@@ -81,6 +70,17 @@ function App() {
         element={
           <ProtectedRoute>
             <MobileHomePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.MEMBER_APPROVAL}
+        element={
+          <ProtectedRoute>
+            <AdminOnlyRoute>
+              <AdminMemberApprovalPage />
+            </AdminOnlyRoute>
           </ProtectedRoute>
         }
       />
@@ -163,7 +163,27 @@ function App() {
         }
       />
 
-      <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
+      <Route
+        path={ROUTES.PLAYER_ANALYSIS_CLIP_CREATE}
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
+              <PlayerAnalysisClipEditorPage />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path={ROUTES.PLAYER_ANALYSIS_CLIP_EDIT}
+        element={
+          <ProtectedRoute>
+            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
+              <PlayerAnalysisClipEditorPage />
+            </RoleRoute>
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

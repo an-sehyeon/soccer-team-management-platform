@@ -23,6 +23,8 @@ import com.soccer.platform.dto.playerclip.PlayerAnalysisClipDetailResponseDTO;
 import com.soccer.platform.dto.playerclip.PlayerAnalysisClipListResponseDTO;
 import com.soccer.platform.dto.playerclip.PlayerAnalysisClipPageResponseDTO;
 import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipRequestDTO;
+import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipWithDrawingsRequestDTO;
+import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipWithDrawingsResponseDTO;
 import com.soccer.platform.entity.GameVideoUploadEntity;
 import com.soccer.platform.entity.MemberEntity;
 import com.soccer.platform.entity.PlayerVideoClipDrawingEntity;
@@ -298,6 +300,88 @@ public class PlayerAnalysisClipService {
 		requestPlayerAnalysisClipFileGenerationAfterCommit(generationCommand);
 
 		return toPlayerAnalysisClipDetailResponseDTO(playerVideoClip);
+	}
+	
+	// 선수 개인 분석 클립과 드로잉 통합 수정
+	@Transactional
+	public UpdatePlayerAnalysisClipWithDrawingsResponseDTO updatePlayerAnalysisClipWithDrawings(
+	        Integer playerClipId,
+	        UpdatePlayerAnalysisClipWithDrawingsRequestDTO request,
+	        CustomUserPrincipal principal
+	) {
+	    playerAnalysisClipValidator.validateCanCreateOrUpdate(principal);
+	    playerAnalysisClipValidator.validateUpdateWithDrawingsRequest(request);
+
+	    PlayerVideoClipEntity playerVideoClip =
+	            playerAnalysisClipValidator.findValidPlayerAnalysisClip(playerClipId);
+
+	    playerAnalysisClipValidator.validateCanUpdateGenerationTarget(playerVideoClip);
+
+	    GameVideoUploadEntity matchVideo =
+	            playerAnalysisClipValidator.findValidMatchVideoWithDuration(
+	                    playerVideoClip.getGameVideoUpload().getId()
+	            );
+
+	    MemberEntity player = playerAnalysisClipValidator.findValidPlayer(request.getPlayerId());
+
+	    playerAnalysisClipValidator.validateClipTimeRange(
+	            request.getStartTimeSec(),
+	            request.getEndTimeSec(),
+	            matchVideo
+	    );
+
+	    boolean fileGenerationRequired = isPlayerClipFileGenerationRequired(
+	            playerVideoClip,
+	            request
+	    );
+
+	    Path originalVideoFilePath = null;
+	    String previousClipUrl = playerVideoClip.getUrl();
+
+	    if (fileGenerationRequired) {
+	        originalVideoFilePath =
+	                playerAnalysisClipLocalFileService.resolveOriginalMatchVideoFilePath(matchVideo);
+	    }
+
+	    playerVideoClip.setPlayer(player);
+	    playerVideoClip.setClipType(request.getClipType());
+	    playerVideoClip.setTitle(request.getTitle().trim());
+	    playerVideoClip.setComment(playerAnalysisClipValidator.trimNullableText(request.getComment()));
+	    playerVideoClip.setStartTimeSec(request.getStartTimeSec());
+	    playerVideoClip.setEndTimeSec(request.getEndTimeSec());
+
+	    softDeleteExistingDrawings(playerVideoClip);
+
+	    MemberEntity editor = playerAnalysisClipValidator.findEditor(principal);
+
+	    saveDrawingsIfExists(
+	            request.getDrawings(),
+	            playerVideoClip,
+	            editor
+	    );
+
+	    if (fileGenerationRequired) {
+	        playerVideoClip.setUrl(null);
+	        playerVideoClip.setStatus(VideoUploadStatusEnum.PROCESSING);
+
+	        PlayerAnalysisClipGenerationCommand generationCommand =
+	                createGenerationCommand(
+	                        playerVideoClip,
+	                        originalVideoFilePath,
+	                        previousClipUrl
+	                );
+
+	        requestPlayerAnalysisClipFileGenerationAfterCommit(generationCommand);
+	    }
+
+	    return new UpdatePlayerAnalysisClipWithDrawingsResponseDTO(
+	            playerVideoClip.getId(),
+	            playerVideoClip.getStatus(),
+	            fileGenerationRequired,
+	            fileGenerationRequired
+	                    ? "선수 개인 분석 클립 수정 후 파일 재생성이 요청되었습니다."
+	                    : "선수 개인 분석 클립과 드로잉이 수정되었습니다."
+	    );
 	}
 
 	// 선수 개인 분석 클립 삭제
@@ -583,4 +667,34 @@ public class PlayerAnalysisClipService {
 		return PlayerAnalysisClipDetailResponseDTO.from(playerVideoClip);
 	}
 
+	// 선수 개인 분석 클립 파일 재생성 필요 여부 판단
+	private boolean isPlayerClipFileGenerationRequired(
+	        PlayerVideoClipEntity playerVideoClip,
+	        UpdatePlayerAnalysisClipWithDrawingsRequestDTO request
+	) {
+	    if (playerVideoClip.getStatus() == VideoUploadStatusEnum.FAILED) {
+	        return true;
+	    }
+
+	    if (playerVideoClip.getUrl() == null || playerVideoClip.getUrl().isBlank()) {
+	        return true;
+	    }
+
+	    return !playerVideoClip.getStartTimeSec().equals(request.getStartTimeSec())
+	            || !playerVideoClip.getEndTimeSec().equals(request.getEndTimeSec());
+	}
+
+	// 기존 선수 개인 분석 드로잉 전체 소프트 삭제
+	private void softDeleteExistingDrawings(PlayerVideoClipEntity playerVideoClip) {
+	    List<PlayerVideoClipDrawingEntity> existingDrawings =
+	            playerVideoClipDrawingRepository
+	                    .findByPlayerVideoClipAndIsDeletedFalseOrderByStartTimeSecAscIdAsc(
+	                            playerVideoClip
+	                    );
+
+	    for (PlayerVideoClipDrawingEntity drawing : existingDrawings) {
+	        drawing.setIsDeleted(true);
+	    }
+	}
+	
 }
