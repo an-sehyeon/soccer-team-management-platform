@@ -1,4 +1,5 @@
-// 선수 개인 분석 클립 목록/상세/삭제와 편집기 이동을 제공하는 페이지
+// 선수 개인 분석 클립 목록/상세/삭제와 편집기 이동, 조회 기록 확인을 제공하는 페이지
+
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -10,6 +11,7 @@ import {
   getMyPlayerAnalysisClipDetail,
   getMyPlayerAnalysisClips,
 } from "../api/playerAnalysisClipApi";
+import { getManagementPlayerAnalysisClipViews } from "../api/playerAnalysisClipViewApi";
 import { getMatchVideos } from "../api/matchVideoApi";
 import { getPlayerAnalysisClipDrawings } from "../api/playerAnalysisClipDrawingApi";
 import PlayerAnalysisDrawingCanvas from "../components/PlayerAnalysisDrawingCanvas";
@@ -29,10 +31,19 @@ import {
   PLAYER_ANALYSIS_CLIP_TYPE_OPTIONS,
 } from "../types/playerAnalysisClip";
 import type { PlayerAnalysisClipDrawingResponse } from "../types/playerAnalysisClipDrawing";
+import type { PlayerAnalysisClipViewResponse } from "../types/playerAnalysisClipView";
 import { createVideoSourceUrl } from "../utils/videoUrl";
 
+type ApiErrorResponse = {
+  timestamp?: string;
+  status?: number;
+  code?: string;
+  message?: string;
+  path?: string;
+};
+
 function getApiErrorMessage(error: unknown, fallbackMessage: string) {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
+  if (axios.isAxiosError<ApiErrorResponse>(error)) {
     const message = error.response?.data?.message;
 
     if (message) {
@@ -82,6 +93,16 @@ function formatSeconds(totalSeconds: number | null | undefined) {
   return `${safeSeconds}초 (${minutes}:${String(seconds).padStart(2, "0")})`;
 }
 
+function formatDateTimeText(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("ko-KR");
+}
+
 function createPlayerLabel(player: PlayerSelectItem) {
   const uniformNumberText =
     player.uniformNumber === null ? "등번호 없음" : `${player.uniformNumber}번`;
@@ -99,6 +120,7 @@ export default function PlayerAnalysisClipPage() {
   const [clips, setClips] = useState<PlayerAnalysisClipListItem[]>([]);
   const [matchVideos, setMatchVideos] = useState<MatchVideoListItem[]>([]);
   const [players, setPlayers] = useState<PlayerSelectItem[]>([]);
+
   const [selectedClip, setSelectedClip] =
     useState<PlayerAnalysisClipDetailResponse | null>(null);
   const [selectedClipDrawings, setSelectedClipDrawings] = useState<
@@ -106,11 +128,20 @@ export default function PlayerAnalysisClipPage() {
   >([]);
   const [selectedClipCurrentTimeSec, setSelectedClipCurrentTimeSec] =
     useState(0);
+
+  const [selectedClipView, setSelectedClipView] =
+    useState<PlayerAnalysisClipViewResponse | null>(null);
+  const [selectedClipViewErrorMessage, setSelectedClipViewErrorMessage] =
+    useState("");
+  const [isSelectedClipViewLoading, setIsSelectedClipViewLoading] =
+    useState(false);
+
   const [selectedMatchVideoFilter, setSelectedMatchVideoFilter] = useState(0);
   const [selectedPlayerFilter, setSelectedPlayerFilter] = useState(0);
   const [selectedClipTypeFilter, setSelectedClipTypeFilter] = useState<
     PlayerAnalysisClipType | ""
   >("");
+
   const [message, setMessage] = useState("");
   const [listErrorMessage, setListErrorMessage] = useState("");
   const [detailErrorMessage, setDetailErrorMessage] = useState("");
@@ -130,7 +161,7 @@ export default function PlayerAnalysisClipPage() {
 
   const fetchPlayerAnalysisClips = async () => {
     if (!member) {
-      return;
+      return [];
     }
 
     if (member.memberRole === "PLAYER") {
@@ -143,8 +174,7 @@ export default function PlayerAnalysisClipPage() {
           selectedClipTypeFilter === "" ? undefined : selectedClipTypeFilter,
       });
 
-      setClips(Array.isArray(response.playerClips) ? response.playerClips : []);
-      return;
+      return Array.isArray(response.playerClips) ? response.playerClips : [];
     }
 
     if (member.memberRole === "COACH" || member.memberRole === "ANALYST") {
@@ -158,13 +188,17 @@ export default function PlayerAnalysisClipPage() {
           selectedClipTypeFilter === "" ? undefined : selectedClipTypeFilter,
       });
 
-      setClips(Array.isArray(response.playerClips) ? response.playerClips : []);
+      return Array.isArray(response.playerClips) ? response.playerClips : [];
     }
+
+    return [];
   };
 
   const reloadPlayerAnalysisClips = async () => {
     try {
-      await fetchPlayerAnalysisClips();
+      const nextClips = await fetchPlayerAnalysisClips();
+
+      setClips(nextClips);
       setListErrorMessage("");
     } catch (error) {
       setListErrorMessage(
@@ -173,6 +207,37 @@ export default function PlayerAnalysisClipPage() {
           "선수 개인 분석 클립 목록을 불러오지 못했습니다.",
         ),
       );
+    }
+  };
+
+  const loadPlayerAnalysisClipView = async (
+    playerId: number,
+    playerClipId: number,
+  ) => {
+    setIsSelectedClipViewLoading(true);
+
+    try {
+      const response = await getManagementPlayerAnalysisClipViews(playerId, {
+        page: 0,
+        size: 50,
+      });
+
+      const currentClipView =
+        response.views.find((view) => view.playerClipId === playerClipId) ??
+        null;
+
+      setSelectedClipView(currentClipView);
+      setSelectedClipViewErrorMessage("");
+    } catch (error) {
+      setSelectedClipView(null);
+      setSelectedClipViewErrorMessage(
+        getApiErrorMessage(
+          error,
+          "선수 개인 분석 클립 조회 기록을 불러오지 못했습니다.",
+        ),
+      );
+    } finally {
+      setIsSelectedClipViewLoading(false);
     }
   };
 
@@ -188,6 +253,9 @@ export default function PlayerAnalysisClipPage() {
       setVideoErrorMessage("");
       setSelectedClipDrawings([]);
       setSelectedClipCurrentTimeSec(0);
+      setSelectedClipView(null);
+      setSelectedClipViewErrorMessage("");
+      setIsSelectedClipViewLoading(false);
 
       const detail =
         member.memberRole === "PLAYER"
@@ -196,16 +264,24 @@ export default function PlayerAnalysisClipPage() {
 
       setSelectedClip(detail);
 
+      if (canManagePlayerClip) {
+        await loadPlayerAnalysisClipView(detail.playerId, detail.playerClipId);
+      }
+
       if (detail.status !== "READY") {
         return;
       }
 
       const drawings = await getPlayerAnalysisClipDrawings(playerClipId);
+
       setSelectedClipDrawings(Array.isArray(drawings) ? drawings : []);
     } catch (error) {
       setSelectedClip(null);
       setSelectedClipDrawings([]);
       setVideoErrorMessage("");
+      setSelectedClipView(null);
+      setSelectedClipViewErrorMessage("");
+      setIsSelectedClipViewLoading(false);
       setDetailErrorMessage(
         getApiErrorMessage(
           error,
@@ -238,6 +314,9 @@ export default function PlayerAnalysisClipPage() {
       setSelectedClip(null);
       setSelectedClipDrawings([]);
       setSelectedClipCurrentTimeSec(0);
+      setSelectedClipView(null);
+      setSelectedClipViewErrorMessage("");
+      setIsSelectedClipViewLoading(false);
       setMessage("선수 개인 분석 클립이 삭제되었습니다.");
 
       await reloadPlayerAnalysisClips();
@@ -293,48 +372,13 @@ export default function PlayerAnalysisClipPage() {
     }
 
     let ignore = false;
-    const role = member.memberRole;
 
     async function fetchClips() {
       try {
-        if (role === "PLAYER") {
-          const response = await getMyPlayerAnalysisClips({
-            page: 0,
-            size: 20,
-            matchVideoId:
-              selectedMatchVideoFilter > 0
-                ? selectedMatchVideoFilter
-                : undefined,
-            clipType:
-              selectedClipTypeFilter === ""
-                ? undefined
-                : selectedClipTypeFilter,
-          });
-
-          if (!ignore) {
-            setClips(
-              Array.isArray(response.playerClips) ? response.playerClips : [],
-            );
-            setListErrorMessage("");
-          }
-
-          return;
-        }
-
-        const response = await getManagementPlayerAnalysisClips({
-          page: 0,
-          size: 20,
-          matchVideoId:
-            selectedMatchVideoFilter > 0 ? selectedMatchVideoFilter : undefined,
-          playerId: selectedPlayerFilter > 0 ? selectedPlayerFilter : undefined,
-          clipType:
-            selectedClipTypeFilter === "" ? undefined : selectedClipTypeFilter,
-        });
+        const nextClips = await fetchPlayerAnalysisClips();
 
         if (!ignore) {
-          setClips(
-            Array.isArray(response.playerClips) ? response.playerClips : [],
-          );
+          setClips(nextClips);
           setListErrorMessage("");
         }
       } catch (error) {
@@ -420,7 +464,7 @@ export default function PlayerAnalysisClipPage() {
   }, [canManagePlayerClip]);
 
   return (
-    <main className="page-container">
+    <main>
       <h1>선수 개인 분석 클립</h1>
 
       {message && <p className="success-message">{message}</p>}
@@ -491,18 +535,18 @@ export default function PlayerAnalysisClipPage() {
             </select>
           </label>
         </div>
-
-        {canManagePlayerClip && (
-          <div className="button-row">
-            <button
-              type="button"
-              onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP_CREATE)}
-            >
-              선수 개인 분석 클립 등록
-            </button>
-          </div>
-        )}
       </section>
+
+      {canManagePlayerClip && (
+        <div className="button-row">
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP_CREATE)}
+          >
+            선수 개인 분석 클립 등록
+          </button>
+        </div>
+      )}
 
       <section className="content-grid">
         <div className="card">
@@ -623,26 +667,83 @@ export default function PlayerAnalysisClipPage() {
                 </p>
               </div>
 
-              {canManagePlayerClip && (
-                <div className="button-row">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        createPlayerAnalysisClipEditRoute(
-                          selectedClip.playerClipId,
-                        ),
-                      )
-                    }
-                  >
-                    수정
-                  </button>
+              {canManagePlayerClip && selectedClip && (
+                <section className="detail-box">
+                  <h3>선수 확인 기록</h3>
 
-                  {canDeletePlayerClip && (
-                    <button type="button" onClick={handleDelete}>
-                      삭제
-                    </button>
+                  {isSelectedClipViewLoading && (
+                    <p>조회 기록을 불러오는 중입니다.</p>
                   )}
+
+                  {selectedClipViewErrorMessage && (
+                    <p className="error-message">
+                      {selectedClipViewErrorMessage}
+                    </p>
+                  )}
+
+                  {!isSelectedClipViewLoading &&
+                    !selectedClipViewErrorMessage &&
+                    selectedClipView && (
+                      <div className="detail-grid">
+                        <p>
+                          <strong>조회 선수</strong>
+                          <br />
+                          {selectedClipView.playerName}
+                        </p>
+
+                        <p>
+                          <strong>최초 확인 시간</strong>
+                          <br />
+                          {formatDateTimeText(selectedClipView.firstViewedAt)}
+                        </p>
+
+                        <p>
+                          <strong>마지막 확인 시간</strong>
+                          <br />
+                          {formatDateTimeText(selectedClipView.lastViewedAt)}
+                        </p>
+
+                        <p>
+                          <strong>대상 선수 조회 횟수</strong>
+                          <br />
+                          {selectedClipView.viewCount}회
+                        </p>
+                      </div>
+                    )}
+
+                  {!isSelectedClipViewLoading &&
+                    !selectedClipViewErrorMessage &&
+                    !selectedClipView && (
+                      <p>
+                        아직 {selectedClip.playerName} 선수가 이 개인 분석
+                        클립을 조회하지 않았습니다.
+                      </p>
+                    )}
+                </section>
+              )}
+
+              {canManagePlayerClip && (
+                <div className="detail-box">
+                  <div className="button-row">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          createPlayerAnalysisClipEditRoute(
+                            selectedClip.playerClipId,
+                          ),
+                        )
+                      }
+                    >
+                      수정
+                    </button>
+
+                    {canDeletePlayerClip && (
+                      <button type="button" onClick={handleDelete}>
+                        삭제
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
