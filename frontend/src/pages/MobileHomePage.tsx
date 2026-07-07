@@ -1,14 +1,15 @@
 // 모바일과 태블릿에서 모든 역할이 사용하는 홈 화면 파일
-
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import { getFrontendPermissions } from "../utils/rolePermission";
+
 import { ROUTES } from "../constants/routes";
+import { useAuth } from "../hooks/useAuth";
 import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
+import { getFrontendPermissions } from "../utils/rolePermission";
 
 export function MobileHomePage() {
   const navigate = useNavigate();
   const { member, logout } = useAuth();
+
   const permissions = getFrontendPermissions(member);
 
   function handleLogout() {
@@ -68,224 +69,109 @@ export function MobileHomePage() {
 
   return (
     <AuthenticatedLayout title="모바일 홈">
-      <section>
-        <h2>스케줄</h2>
-        <p>{createDescription(scheduleActions)}</p>
+      <main className="page">
+        <section className="page-header">
+          <div>
+            <h1>모바일 홈</h1>
+            <p>모바일에서 주요 팀 운영 기능과 분석 영상을 확인합니다.</p>
+          </div>
 
-        <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
-          스케줄 조회
-        </button>
-
-        {permissions.canCreateSchedule && (
-          <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
-            스케줄 등록
-          </button>
-        )}
-
-        {permissions.canUpdateSchedule && (
-          <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
-            스케줄 수정
-          </button>
-        )}
-
-        {permissions.canDeleteSchedule && (
-          <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
-            스케줄 삭제
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h2>공지사항</h2>
-        <p>{createDescription(noticeActions)}</p>
-
-        <button type="button" onClick={() => navigate(ROUTES.NOTICE)}>
-          공지사항 조회
-        </button>
-
-        {permissions.canCreateNotice && (
-          <button type="button" onClick={() => navigate(ROUTES.NOTICE)}>
-            공지사항 등록
-          </button>
-        )}
-
-        {permissions.canUpdateNotice && (
-          <button type="button" onClick={() => navigate(ROUTES.NOTICE)}>
-            공지사항 수정
-          </button>
-        )}
-
-        {permissions.canDeleteNotice && (
-          <button type="button" onClick={() => navigate(ROUTES.NOTICE)}>
-            공지사항 삭제
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h2>경기 영상</h2>
-        <p>{createDescription(matchVideoActions)}</p>
-
-        <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
-          경기 영상 조회
-        </button>
-
-        {permissions.canCreateMatchVideo && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.MATCH_VIDEO_CREATE)}
-          >
-            경기 영상 등록
-          </button>
-        )}
-
-        {permissions.canUpdateMatchVideo && (
-          <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
-            경기 영상 수정
-          </button>
-        )}
-
-        {permissions.canDeleteMatchVideo && (
-          <button type="button" onClick={() => navigate(ROUTES.MATCH_VIDEO)}>
-            경기 영상 삭제
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h2>팀 분석 클립</h2>
-        <p>{createDescription(teamAnalysisClipActions)}</p>
-
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
-        >
-          팀 분석 클립 조회
-        </button>
-
-        {permissions.canCreateTeamAnalysisClip && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
-          >
-            팀 분석 클립 등록
-          </button>
-        )}
-
-        {permissions.canUpdateTeamAnalysisClip && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
-          >
-            팀 분석 클립 수정
-          </button>
-        )}
-
-        {permissions.canDeleteTeamAnalysisClip && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
-          >
-            팀 분석 클립 삭제
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h2>선수 개인 분석 클립</h2>
-        <p>{createDescription(playerAnalysisClipActions)}</p>
-
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
-        >
-          선수 개인 분석 클립 조회
-        </button>
-
-        {permissions.canCreatePlayerAnalysisClip && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
-          >
-            선수 개인 분석 클립 등록
-          </button>
-        )}
-
-        {permissions.canUpdatePlayerAnalysisClip && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
-          >
-            선수 개인 분석 클립 수정
-          </button>
-        )}
-
-        {permissions.canDeletePlayerAnalysisClip && (
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
-          >
-            선수 개인 분석 클립 삭제
-          </button>
-        )}
-      </section>
-
-      <section>
-        <h2>선수 기록</h2>
-        <p>{createDescription(playerRecordActions)}</p>
-
-        <button
-          type="button"
-          onClick={() => handlePreparingFeature("선수 기록 조회")}
-        >
-          선수 기록 조회
-        </button>
-
-        {permissions.canCreatePlayerRecord && (
-          <button
-            type="button"
-            onClick={() => handlePreparingFeature("선수 기록 등록")}
-          >
-            선수 기록 등록
-          </button>
-        )}
-
-        {permissions.canUpdatePlayerRecord && (
-          <button
-            type="button"
-            onClick={() => handlePreparingFeature("선수 기록 수정")}
-          >
-            선수 기록 수정
-          </button>
-        )}
-
-        {permissions.canDeletePlayerRecord && (
-          <button
-            type="button"
-            onClick={() => handlePreparingFeature("선수 기록 삭제")}
-          >
-            선수 기록 삭제
-          </button>
-        )}
-      </section>
-
-      {permissions.canManageMembers && (
-        <section>
-          <h2>회원 승인</h2>
-          <p>승인 대기 회원 조회, 승인, 거절</p>
-
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.MEMBER_APPROVAL)}
-          >
-            회원 승인 관리
-          </button>
+          <div className="button-row">
+            <button type="button" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
         </section>
-      )}
 
-      <button type="button" onClick={handleLogout}>
-        로그아웃
-      </button>
+        <section className="content-grid">
+          <article className="card">
+            <h2>스케줄</h2>
+            <p>{createDescription(scheduleActions)}</p>
+            <div className="button-row">
+              <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
+                스케줄
+              </button>
+            </div>
+          </article>
+
+          <article className="card">
+            <h2>공지사항</h2>
+            <p>{createDescription(noticeActions)}</p>
+            <div className="button-row">
+              <button type="button" onClick={() => navigate(ROUTES.NOTICE)}>
+                공지사항
+              </button>
+            </div>
+          </article>
+
+          <article className="card">
+            <h2>경기 영상</h2>
+            <p>{createDescription(matchVideoActions)}</p>
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.MATCH_VIDEO)}
+              >
+                경기 영상
+              </button>
+            </div>
+          </article>
+
+          <article className="card">
+            <h2>팀 분석 클립</h2>
+            <p>{createDescription(teamAnalysisClipActions)}</p>
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.TEAM_ANALYSIS_CLIP)}
+              >
+                팀 분석 영상
+              </button>
+            </div>
+          </article>
+
+          <article className="card">
+            <h2>선수 개인 분석 클립</h2>
+            <p>{createDescription(playerAnalysisClipActions)}</p>
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP)}
+              >
+                개인 분석 영상
+              </button>
+            </div>
+          </article>
+
+          <article className="card">
+            <h2>선수 기록</h2>
+            <p>{createDescription(playerRecordActions)}</p>
+            <div className="button-row">
+              <button
+                type="button"
+                onClick={() => handlePreparingFeature("선수 기록 조회")}
+              >
+                선수 기록
+              </button>
+            </div>
+          </article>
+
+          {permissions.canManageMembers && (
+            <article className="card">
+              <h2>회원 승인</h2>
+              <p>승인 대기 회원 조회, 승인, 거절</p>
+              <div className="button-row">
+                <button
+                  type="button"
+                  onClick={() => navigate(ROUTES.MEMBER_APPROVAL)}
+                >
+                  회원 승인
+                </button>
+              </div>
+            </article>
+          )}
+        </section>
+      </main>
     </AuthenticatedLayout>
   );
 }
