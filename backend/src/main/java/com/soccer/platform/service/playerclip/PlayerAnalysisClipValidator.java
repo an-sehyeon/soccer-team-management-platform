@@ -9,6 +9,7 @@ import com.soccer.platform.common.exception.ErrorCode;
 import com.soccer.platform.dto.playerclip.CreatePlayerAnalysisClipRequestDTO;
 import com.soccer.platform.dto.playerclip.CreatePlayerAnalysisClipWithDrawingsRequestDTO;
 import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipRequestDTO;
+import com.soccer.platform.dto.playerclip.UpdatePlayerAnalysisClipWithDrawingsRequestDTO;
 import com.soccer.platform.entity.GameVideoUploadEntity;
 import com.soccer.platform.entity.MemberEntity;
 import com.soccer.platform.entity.PlayerVideoClipEntity;
@@ -117,6 +118,25 @@ public class PlayerAnalysisClipValidator {
 				request.getEndTimeSec(),
 				request.getComment()
 		);
+	}
+	
+	// 선수 개인 분석 클립과 드로잉 통합 수정 요청 검증
+	public void validateUpdateWithDrawingsRequest(UpdatePlayerAnalysisClipWithDrawingsRequestDTO request) {
+	    if (request == null) {
+	        throw new CustomException(ErrorCode.INVALID_REQUEST);
+	    }
+
+	    if (request.getPlayerId() == null) {
+	        throw new CustomException(ErrorCode.INVALID_REQUEST);
+	    }
+
+	    validateRequiredClipValues(
+	            request.getTitle(),
+	            request.getClipType(),
+	            request.getStartTimeSec(),
+	            request.getEndTimeSec(),
+	            request.getComment()
+	    );
 	}
 	
 	// 생성 중인 선수 개인 분석 클립 수정 방지
