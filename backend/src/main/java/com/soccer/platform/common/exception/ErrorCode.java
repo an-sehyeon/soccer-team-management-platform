@@ -60,6 +60,19 @@ public enum ErrorCode {
 	INVALID_PLAYER_RECORD_PLAYER(HttpStatus.BAD_REQUEST, "선수 기록 대상은 선수 역할만 가능합니다."),
 	INVALID_PLAYER_RECORD_VALUE(HttpStatus.BAD_REQUEST, "선수 기록 값이 올바르지 않습니다."),
 	
+    // 선수 기록 이벤트
+    PLAYER_RECORD_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 기록 이벤트를 찾을 수 없습니다."),
+    PLAYER_RECORD_EVENT_CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "선수 기록 이벤트 클립 연결을 찾을 수 없습니다."),
+    PLAYER_RECORD_EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "선수 기록 이벤트에 접근할 권한이 없습니다."),
+    PLAYER_RECORD_EVENT_MANAGE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "선수 기록 이벤트 관리 권한이 없습니다."),
+    INVALID_PLAYER_RECORD_EVENT_REQUEST(HttpStatus.BAD_REQUEST, "선수 기록 이벤트 요청 값이 올바르지 않습니다."),
+    INVALID_PLAYER_RECORD_EVENT_TYPE(HttpStatus.BAD_REQUEST, "선수 기록 이벤트 유형이 올바르지 않습니다."),
+    INVALID_PLAYER_RECORD_CLIP_SOURCE_TYPE(HttpStatus.BAD_REQUEST, "선수 기록 이벤트 클립 출처 유형이 올바르지 않습니다."),
+    INVALID_PLAYER_RECORD_EVENT_TIME(HttpStatus.BAD_REQUEST, "선수 기록 이벤트 시간이 올바르지 않습니다."),
+    INVALID_PLAYER_RECORD_EVENT_VALUE(HttpStatus.BAD_REQUEST, "선수 기록 이벤트 값이 올바르지 않습니다."),
+    PLAYER_RECORD_CLIP_MATCH_VIDEO_MISMATCH(HttpStatus.BAD_REQUEST, "선수 기록 이벤트와 연결할 클립의 경기 영상이 일치하지 않습니다."),
+    PLAYER_RECORD_EVENT_PLAYER_MISMATCH(HttpStatus.BAD_REQUEST, "선수 기록 대상 선수와 선수 개인 분석 클립 대상 선수가 일치하지 않습니다."),
+	
 	// 스케줄
 	SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 스케줄입니다."),
 	SCHEDULE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "스케줄을 관리할 권한이 없습니다."),
