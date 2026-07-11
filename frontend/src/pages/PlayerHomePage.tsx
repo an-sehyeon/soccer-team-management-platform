@@ -1,4 +1,5 @@
 // PC에서 선수가 사용하는 홈 화면 파일
+
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "../constants/routes";
@@ -12,10 +13,6 @@ export function PlayerHomePage() {
   function handleLogout() {
     logout();
     navigate(ROUTES.LOGIN);
-  }
-
-  function handlePreparingFeature(featureName: string) {
-    alert(`${featureName} 화면은 아직 준비 중입니다.`);
   }
 
   return (
@@ -100,7 +97,7 @@ export function PlayerHomePage() {
             <div className="button-row">
               <button
                 type="button"
-                onClick={() => handlePreparingFeature("내 기록 조회")}
+                onClick={() => navigate(ROUTES.PLAYER_RECORD)}
               >
                 내 기록 조회
               </button>
