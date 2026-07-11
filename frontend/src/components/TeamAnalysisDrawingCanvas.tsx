@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
+
 import type {
   TeamAnalysisClipDrawingData,
   TeamAnalysisClipDrawingResponse,
@@ -37,7 +38,7 @@ export default function TeamAnalysisDrawingCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [dragStartPoint, setDragStartPoint] = useState<Point | null>(null);
 
-  const resizeCanvas = () => {
+  function resizeCanvas() {
     const canvas = canvasRef.current;
     const parent = canvas?.parentElement;
 
@@ -51,13 +52,19 @@ export default function TeamAnalysisDrawingCanvas({
       return;
     }
 
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-  };
+    const nextWidth = Math.round(rect.width);
+    const nextHeight = Math.round(rect.height);
 
-  const getMousePoint = (
-    event: MouseEvent<HTMLCanvasElement>,
-  ): Point | null => {
+    if (canvas.width !== nextWidth) {
+      canvas.width = nextWidth;
+    }
+
+    if (canvas.height !== nextHeight) {
+      canvas.height = nextHeight;
+    }
+  }
+
+  function getMousePoint(event: MouseEvent<HTMLCanvasElement>): Point | null {
     const canvas = canvasRef.current;
 
     if (!canvas) {
@@ -74,9 +81,9 @@ export default function TeamAnalysisDrawingCanvas({
       x: (event.clientX - rect.left) / rect.width,
       y: (event.clientY - rect.top) / rect.height,
     };
-  };
+  }
 
-  const handleMouseDown = (event: MouseEvent<HTMLCanvasElement>) => {
+  function handleMouseDown(event: MouseEvent<HTMLCanvasElement>) {
     if (!isDrawingMode) {
       return;
     }
@@ -96,14 +103,13 @@ export default function TeamAnalysisDrawingCanvas({
         color: DEFAULT_COLOR,
         fontSize: DEFAULT_FONT_SIZE,
       });
-
       return;
     }
 
     setDragStartPoint(point);
-  };
+  }
 
-  const handleMouseUp = (event: MouseEvent<HTMLCanvasElement>) => {
+  function handleMouseUp(event: MouseEvent<HTMLCanvasElement>) {
     if (!isDrawingMode || !dragStartPoint) {
       return;
     }
@@ -123,67 +129,83 @@ export default function TeamAnalysisDrawingCanvas({
 
     onDraftDrawingData(drawingData);
     setDragStartPoint(null);
-  };
+  }
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    const parent = canvas?.parentElement;
+
+    if (!canvas || !parent) {
+      return;
+    }
+
     resizeCanvas();
 
-    window.addEventListener("resize", resizeCanvas);
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+      drawCanvas(canvas, drawings, currentTimeSec);
+    });
+
+    resizeObserver.observe(parent);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas);
+      resizeObserver.disconnect();
     };
-  }, []);
+  }, [currentTimeSec, drawings]);
 
   useEffect(() => {
-    resizeCanvas();
-
     const canvas = canvasRef.current;
 
     if (!canvas) {
       return;
     }
 
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      return;
-    }
-
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    drawings
-      .filter(
-        (drawing) =>
-          drawing.startTimeSec <= currentTimeSec &&
-          currentTimeSec <= drawing.endTimeSec,
-      )
-      .forEach((drawing) => {
-        drawSavedDrawing(
-          context,
-          canvas.width,
-          canvas.height,
-          drawing.drawingType,
-          drawing.drawingData,
-        );
-      });
+    resizeCanvas();
+    drawCanvas(canvas, drawings, currentTimeSec);
   }, [drawings, currentTimeSec]);
 
   return (
     <canvas
       ref={canvasRef}
+      className={
+        isDrawingMode
+          ? "analysis-drawing-canvas is-drawing"
+          : "analysis-drawing-canvas"
+      }
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        pointerEvents: isDrawingMode ? "auto" : "none",
-      }}
-      aria-label="팀 분석 클립 드로잉 캔버스"
     />
   );
+}
+
+function drawCanvas(
+  canvas: HTMLCanvasElement,
+  drawings: TeamAnalysisClipDrawingResponse[],
+  currentTimeSec: number,
+) {
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    return;
+  }
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawings
+    .filter(
+      (drawing) =>
+        drawing.startTimeSec <= currentTimeSec &&
+        currentTimeSec <= drawing.endTimeSec,
+    )
+    .forEach((drawing) => {
+      drawSavedDrawing(
+        context,
+        canvas.width,
+        canvas.height,
+        drawing.drawingType,
+        drawing.drawingData,
+      );
+    });
 }
 
 function createDrawingData(
@@ -366,6 +388,7 @@ function drawText(
 
   context.fillStyle = getString(drawingData.color, DEFAULT_COLOR);
   context.font = `${fontSize}px sans-serif`;
+  context.textBaseline = "top";
   context.fillText(text, x, y);
 }
 
