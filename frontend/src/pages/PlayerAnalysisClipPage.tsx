@@ -15,7 +15,7 @@ import { getManagementPlayerAnalysisClipViews } from "../api/playerAnalysisClipV
 import { getMatchVideos } from "../api/matchVideoApi";
 import { getPlayerAnalysisClipDrawings } from "../api/playerAnalysisClipDrawingApi";
 import PlayerAnalysisDrawingCanvas from "../components/PlayerAnalysisDrawingCanvas";
-import { ROUTES, createPlayerAnalysisClipEditRoute } from "../constants/routes";
+import { createMatchVideoAnalysisRoute } from "../constants/routes";
 import { AuthContext } from "../contexts/authContext";
 import type { MatchVideoListItem } from "../types/matchVideo";
 import type {
@@ -541,7 +541,13 @@ export default function PlayerAnalysisClipPage() {
         <div className="button-row">
           <button
             type="button"
-            onClick={() => navigate(ROUTES.PLAYER_ANALYSIS_CLIP_CREATE)}
+            onClick={() =>
+              navigate(
+                createMatchVideoAnalysisRoute({
+                  analysisMode: "player-clip-create",
+                }),
+              )
+            }
           >
             선수 개인 분석 클립 등록
           </button>
@@ -729,9 +735,10 @@ export default function PlayerAnalysisClipPage() {
                       type="button"
                       onClick={() =>
                         navigate(
-                          createPlayerAnalysisClipEditRoute(
-                            selectedClip.playerClipId,
-                          ),
+                          createMatchVideoAnalysisRoute({
+                            analysisMode: "player-clip-edit",
+                            playerClipId: selectedClip.playerClipId,
+                          }),
                         )
                       }
                     >

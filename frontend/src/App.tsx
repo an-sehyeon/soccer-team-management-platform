@@ -1,24 +1,27 @@
 // 앱 전체 라우팅 구조를 정의하는 파일
+
 import { Navigate, Route, Routes } from "react-router-dom";
+
 import { LoginPage } from "./pages/LoginPage";
 import { SignUpPage } from "./pages/SignUpPage";
 import { DashboardHomePage } from "./pages/DashboardHomePage";
 import { PlayerHomePage } from "./pages/PlayerHomePage";
 import { MobileHomePage } from "./pages/MobileHomePage";
-import { ProtectedRoute } from "./routes/ProtectedRoute";
-import { PublicOnlyRoute } from "./routes/PublicOnlyRoute";
-import { RoleRoute } from "./routes/RoleRoute";
-import { ROUTES } from "./constants/routes";
 import { AdminMemberApprovalPage } from "./pages/AdminMemberApprovalPage";
-import { AdminOnlyRoute } from "./routes/AdminOnlyRoute";
+
 import SchedulePage from "./pages/SchedulePage";
 import NoticePage from "./pages/NoticePage";
 import MatchVideoPage from "./pages/MatchVideoPage";
 import MatchVideoCreatePage from "./pages/MatchVideoCreatePage.tsx";
 import TeamAnalysisClipPage from "./pages/TeamAnalysisClipPage.tsx";
-import TeamAnalysisClipEditorPage from "./pages/TeamAnalysisClipEditorPage.tsx";
 import PlayerAnalysisClipPage from "./pages/PlayerAnalysisClipPage.tsx";
-import PlayerAnalysisClipEditorPage from "./pages/PlayerAnalysisClipEditorPage.tsx";
+import PlayerRecordPage from "./pages/PlayerRecordPage.tsx";
+
+import { ROUTES } from "./constants/routes";
+import { ProtectedRoute } from "./routes/ProtectedRoute";
+import { PublicOnlyRoute } from "./routes/PublicOnlyRoute";
+import { RoleRoute } from "./routes/RoleRoute";
+import { AdminOnlyRoute } from "./routes/AdminOnlyRoute";
 
 function App() {
   return (
@@ -133,28 +136,6 @@ function App() {
       />
 
       <Route
-        path={ROUTES.TEAM_ANALYSIS_CLIP_CREATE}
-        element={
-          <ProtectedRoute>
-            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
-              <TeamAnalysisClipEditorPage />
-            </RoleRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path={ROUTES.TEAM_ANALYSIS_CLIP_EDIT}
-        element={
-          <ProtectedRoute>
-            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
-              <TeamAnalysisClipEditorPage />
-            </RoleRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
         path={ROUTES.PLAYER_ANALYSIS_CLIP}
         element={
           <ProtectedRoute>
@@ -164,23 +145,10 @@ function App() {
       />
 
       <Route
-        path={ROUTES.PLAYER_ANALYSIS_CLIP_CREATE}
+        path={ROUTES.PLAYER_RECORD}
         element={
           <ProtectedRoute>
-            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
-              <PlayerAnalysisClipEditorPage />
-            </RoleRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path={ROUTES.PLAYER_ANALYSIS_CLIP_EDIT}
-        element={
-          <ProtectedRoute>
-            <RoleRoute allowedRoles={["COACH", "ANALYST"]}>
-              <PlayerAnalysisClipEditorPage />
-            </RoleRoute>
+            <PlayerRecordPage />
           </ProtectedRoute>
         }
       />

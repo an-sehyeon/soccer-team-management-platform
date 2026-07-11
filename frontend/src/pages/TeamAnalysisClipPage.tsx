@@ -10,7 +10,7 @@ import {
 } from "../api/teamAnalysisClipApi";
 import { getTeamAnalysisClipDrawings } from "../api/teamAnalysisClipDrawingApi";
 import TeamAnalysisDrawingCanvas from "../components/TeamAnalysisDrawingCanvas";
-import { ROUTES, createTeamAnalysisClipEditRoute } from "../constants/routes";
+import { createMatchVideoAnalysisRoute } from "../constants/routes";
 import { AuthContext } from "../contexts/authContext";
 import type { MatchVideoListItem } from "../types/matchVideo";
 import type {
@@ -158,7 +158,11 @@ export default function TeamAnalysisClipPage() {
     selectedClip?.status === "READY" && selectedClipVideoUrl !== "";
 
   const handleMoveToCreatePage = () => {
-    navigate(ROUTES.TEAM_ANALYSIS_CLIP_CREATE);
+    navigate(
+      createMatchVideoAnalysisRoute({
+        analysisMode: "team-clip-create",
+      }),
+    );
   };
 
   const handleMoveToEditPage = () => {
@@ -166,7 +170,12 @@ export default function TeamAnalysisClipPage() {
       return;
     }
 
-    navigate(createTeamAnalysisClipEditRoute(selectedClip.teamClipId));
+    navigate(
+      createMatchVideoAnalysisRoute({
+        analysisMode: "team-clip-edit",
+        teamClipId: selectedClip.teamClipId,
+      }),
+    );
   };
 
   const handleLoadTeamAnalysisClipDetail = async (teamClipId: number) => {
