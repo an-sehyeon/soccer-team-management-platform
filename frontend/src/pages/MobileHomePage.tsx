@@ -1,7 +1,8 @@
 // 모바일과 태블릿에서 모든 역할이 사용하는 홈 화면 파일
+
 import { useNavigate } from "react-router-dom";
 
-import { ROUTES } from "../constants/routes";
+import { ROUTES, createMatchVideoAnalysisRoute } from "../constants/routes";
 import { useAuth } from "../hooks/useAuth";
 import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
 import { getFrontendPermissions } from "../utils/rolePermission";
@@ -9,16 +10,14 @@ import { getFrontendPermissions } from "../utils/rolePermission";
 export function MobileHomePage() {
   const navigate = useNavigate();
   const { member, logout } = useAuth();
-
   const permissions = getFrontendPermissions(member);
+
+  const isManager =
+    member?.memberRole === "COACH" || member?.memberRole === "ANALYST";
 
   function handleLogout() {
     logout();
     navigate(ROUTES.LOGIN);
-  }
-
-  function handlePreparingFeature(featureName: string) {
-    alert(`${featureName} 화면은 아직 준비 중입니다.`);
   }
 
   function createDescription(actions: string[]) {
@@ -47,16 +46,14 @@ export function MobileHomePage() {
   ];
 
   const teamAnalysisClipActions = [
-    "조회",
-    ...(permissions.canCreateTeamAnalysisClip ? ["등록"] : []),
-    ...(permissions.canUpdateTeamAnalysisClip ? ["수정"] : []),
+    "목록 조회",
+    "상세 조회",
     ...(permissions.canDeleteTeamAnalysisClip ? ["삭제"] : []),
   ];
 
   const playerAnalysisClipActions = [
-    "조회",
-    ...(permissions.canCreatePlayerAnalysisClip ? ["등록"] : []),
-    ...(permissions.canUpdatePlayerAnalysisClip ? ["수정"] : []),
+    "목록 조회",
+    "상세 조회",
     ...(permissions.canDeletePlayerAnalysisClip ? ["삭제"] : []),
   ];
 
@@ -83,10 +80,11 @@ export function MobileHomePage() {
           </div>
         </section>
 
-        <section className="content-grid">
+        <section className="dashboard-grid">
           <article className="card">
             <h2>스케줄</h2>
             <p>{createDescription(scheduleActions)}</p>
+
             <div className="button-row">
               <button type="button" onClick={() => navigate(ROUTES.SCHEDULE)}>
                 스케줄
@@ -97,6 +95,7 @@ export function MobileHomePage() {
           <article className="card">
             <h2>공지사항</h2>
             <p>{createDescription(noticeActions)}</p>
+
             <div className="button-row">
               <button type="button" onClick={() => navigate(ROUTES.NOTICE)}>
                 공지사항
@@ -107,6 +106,7 @@ export function MobileHomePage() {
           <article className="card">
             <h2>경기 영상</h2>
             <p>{createDescription(matchVideoActions)}</p>
+
             <div className="button-row">
               <button
                 type="button"
@@ -115,11 +115,61 @@ export function MobileHomePage() {
                 경기 영상
               </button>
             </div>
+
+            {isManager && (
+              <div className="button-row">
+                {permissions.canCreateTeamAnalysisClip && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        createMatchVideoAnalysisRoute({
+                          analysisMode: "team-clip-create",
+                        }),
+                      )
+                    }
+                  >
+                    팀 클립 등록
+                  </button>
+                )}
+
+                {permissions.canCreatePlayerAnalysisClip && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        createMatchVideoAnalysisRoute({
+                          analysisMode: "player-clip-create",
+                        }),
+                      )
+                    }
+                  >
+                    선수 클립 등록
+                  </button>
+                )}
+
+                {permissions.canCreatePlayerRecord && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        createMatchVideoAnalysisRoute({
+                          analysisMode: "player-record-event",
+                        }),
+                      )
+                    }
+                  >
+                    기록 이벤트 등록
+                  </button>
+                )}
+              </div>
+            )}
           </article>
 
           <article className="card">
             <h2>팀 분석 클립</h2>
             <p>{createDescription(teamAnalysisClipActions)}</p>
+
             <div className="button-row">
               <button
                 type="button"
@@ -133,6 +183,7 @@ export function MobileHomePage() {
           <article className="card">
             <h2>선수 개인 분석 클립</h2>
             <p>{createDescription(playerAnalysisClipActions)}</p>
+
             <div className="button-row">
               <button
                 type="button"
@@ -146,10 +197,11 @@ export function MobileHomePage() {
           <article className="card">
             <h2>선수 기록</h2>
             <p>{createDescription(playerRecordActions)}</p>
+
             <div className="button-row">
               <button
                 type="button"
-                onClick={() => handlePreparingFeature("선수 기록 조회")}
+                onClick={() => navigate(ROUTES.PLAYER_RECORD)}
               >
                 선수 기록
               </button>
@@ -160,6 +212,7 @@ export function MobileHomePage() {
             <article className="card">
               <h2>회원 승인</h2>
               <p>승인 대기 회원 조회, 승인, 거절</p>
+
               <div className="button-row">
                 <button
                   type="button"
