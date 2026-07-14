@@ -157,7 +157,41 @@ public enum ErrorCode {
 	MATCH_VIDEO_FILE_REQUIRED(HttpStatus.BAD_REQUEST, "경기 영상 파일은 필수입니다."),
 	INVALID_MATCH_VIDEO_FILE_EXTENSION(HttpStatus.BAD_REQUEST, "허용되지 않은 경기 영상 파일 확장자입니다."),
 	INVALID_MATCH_VIDEO_CONTENT_TYPE(HttpStatus.BAD_REQUEST, "허용되지 않은 경기 영상 파일 형식입니다."),
-	MATCH_VIDEO_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "경기 영상 파일 크기가 허용 범위를 초과했습니다.");
+	MATCH_VIDEO_FILE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "경기 영상 파일 크기가 허용 범위를 초과했습니다."),
+	
+    // 영상 북마크
+    VIDEO_BOOKMARK_NOT_FOUND(
+        HttpStatus.NOT_FOUND,
+        "영상 북마크를 찾을 수 없습니다."
+    ),
+    VIDEO_BOOKMARK_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "해당 영상 북마크에 접근할 권한이 없습니다."
+    ),
+    VIDEO_BOOKMARK_MANAGE_ACCESS_DENIED(
+        HttpStatus.FORBIDDEN,
+        "영상 북마크 관리 권한이 없습니다."
+    ),
+    INVALID_VIDEO_BOOKMARK_REQUEST(
+        HttpStatus.BAD_REQUEST,
+        "영상 북마크 요청 값이 올바르지 않습니다."
+    ),
+    INVALID_VIDEO_BOOKMARK_SOURCE(
+        HttpStatus.BAD_REQUEST,
+        "영상 북마크 대상 영상 정보가 올바르지 않습니다."
+    ),
+    VIDEO_BOOKMARK_MATCH_VIDEO_MISMATCH(
+        HttpStatus.BAD_REQUEST,
+        "북마크 대상 클립과 경기 영상이 일치하지 않습니다."
+    ),
+    INVALID_VIDEO_BOOKMARK_TIME(
+        HttpStatus.BAD_REQUEST,
+        "영상 북마크 시간이 대상 영상 범위를 벗어났습니다."
+    ),
+    VIDEO_BOOKMARK_TARGET_NOT_READY(
+        HttpStatus.BAD_REQUEST,
+        "재생 가능한 상태의 영상에만 북마크를 등록할 수 있습니다."
+    );
 
 	private final HttpStatus httpStatus;
 	private final String message;

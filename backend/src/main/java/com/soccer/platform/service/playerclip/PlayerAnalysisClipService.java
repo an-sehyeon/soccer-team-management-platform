@@ -34,6 +34,7 @@ import com.soccer.platform.repository.PlayerVideoClipRepository;
 import com.soccer.platform.security.CustomUserPrincipal;
 import com.soccer.platform.service.playerclipdrawing.PlayerClipDrawingValidator;
 import com.soccer.platform.service.playerclipview.PlayerAnalysisClipViewService;
+import com.soccer.platform.service.videobookmark.VideoBookmarkService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,6 +54,7 @@ public class PlayerAnalysisClipService {
 	private final PlayerAnalysisClipViewService playerAnalysisClipViewService;
 	private final PlayerAnalysisClipLocalFileService playerAnalysisClipLocalFileService;
 	private final PlayerAnalysisClipGenerationAsyncService playerAnalysisClipGenerationAsyncService;
+	private final VideoBookmarkService videoBookmarkService;
 
 	// 선수 개인 분석 클립 등록
 	@Transactional
@@ -254,147 +256,243 @@ public class PlayerAnalysisClipService {
 	// 선수 개인 분석 클립 수정
 	@Transactional
 	public PlayerAnalysisClipDetailResponseDTO updatePlayerAnalysisClip(
-			Integer playerClipId,
-			UpdatePlayerAnalysisClipRequestDTO request,
-			CustomUserPrincipal principal
+	    Integer playerClipId,
+	    UpdatePlayerAnalysisClipRequestDTO request,
+	    CustomUserPrincipal principal
 	) {
-		playerAnalysisClipValidator.validateCanCreateOrUpdate(principal);
-		playerAnalysisClipValidator.validateUpdateRequest(request);
+	    playerAnalysisClipValidator.validateCanCreateOrUpdate(principal);
+	    playerAnalysisClipValidator.validateUpdateRequest(request);
 
-		PlayerVideoClipEntity playerVideoClip = playerAnalysisClipValidator.findValidPlayerAnalysisClip(playerClipId);
+	    PlayerVideoClipEntity playerVideoClip =
+	        playerAnalysisClipValidator
+	            .findValidPlayerAnalysisClip(playerClipId);
 
-		playerAnalysisClipValidator.validateCanUpdateGenerationTarget(playerVideoClip);
+	    playerAnalysisClipValidator
+	        .validateCanUpdateGenerationTarget(playerVideoClip);
 
-		GameVideoUploadEntity matchVideo = playerAnalysisClipValidator.findValidMatchVideoWithDuration(
-				request.getMatchVideoId()
-		);
+	    GameVideoUploadEntity matchVideo =
+	        playerAnalysisClipValidator
+	            .findValidMatchVideoWithDuration(
+	                request.getMatchVideoId()
+	            );
 
-		MemberEntity player = playerAnalysisClipValidator.findValidPlayer(request.getPlayerId());
+	    MemberEntity player =
+	        playerAnalysisClipValidator
+	            .findValidPlayer(request.getPlayerId());
 
-		playerAnalysisClipValidator.validateClipTimeRange(
-				request.getStartTimeSec(),
-				request.getEndTimeSec(),
-				matchVideo
-		);
+	    playerAnalysisClipValidator.validateClipTimeRange(
+	        request.getStartTimeSec(),
+	        request.getEndTimeSec(),
+	        matchVideo
+	    );
 
-		Path originalVideoFilePath = playerAnalysisClipLocalFileService.resolveOriginalMatchVideoFilePath(matchVideo);
+	    boolean bookmarkInvalidationRequired =
+	        isPlayerClipBookmarkInvalidationRequired(
+	            playerVideoClip,
+	            matchVideo,
+	            request.getStartTimeSec(),
+	            request.getEndTimeSec()
+	        );
 
-		String previousClipUrl = playerVideoClip.getUrl();
+	    Path originalVideoFilePath =
+	        playerAnalysisClipLocalFileService
+	            .resolveOriginalMatchVideoFilePath(matchVideo);
 
-		playerVideoClip.setGameVideoUpload(matchVideo);
-		playerVideoClip.setPlayer(player);
-		playerVideoClip.setClipType(request.getClipType());
-		playerVideoClip.setTitle(request.getTitle().trim());
-		playerVideoClip.setComment(playerAnalysisClipValidator.trimNullableText(request.getComment()));
-		playerVideoClip.setStartTimeSec(request.getStartTimeSec());
-		playerVideoClip.setEndTimeSec(request.getEndTimeSec());
-		playerVideoClip.setUrl(null);
-		playerVideoClip.setStatus(VideoUploadStatusEnum.PROCESSING);
+	    String previousClipUrl = playerVideoClip.getUrl();
 
-		PlayerAnalysisClipGenerationCommand generationCommand = createGenerationCommand(
-				playerVideoClip,
-				originalVideoFilePath,
-				previousClipUrl
-		);
+	    if (bookmarkInvalidationRequired) {
+	        videoBookmarkService
+	            .softDeleteBookmarksByPlayerClipId(playerClipId);
+	    }
 
-		requestPlayerAnalysisClipFileGenerationAfterCommit(generationCommand);
+	    playerVideoClip.setGameVideoUpload(matchVideo);
+	    playerVideoClip.setPlayer(player);
+	    playerVideoClip.setClipType(request.getClipType());
+	    playerVideoClip.setTitle(request.getTitle().trim());
+	    playerVideoClip.setComment(
+	        playerAnalysisClipValidator.trimNullableText(
+	            request.getComment()
+	        )
+	    );
+	    playerVideoClip.setStartTimeSec(
+	        request.getStartTimeSec()
+	    );
+	    playerVideoClip.setEndTimeSec(
+	        request.getEndTimeSec()
+	    );
+	    playerVideoClip.setUrl(null);
+	    playerVideoClip.setStatus(
+	        VideoUploadStatusEnum.PROCESSING
+	    );
 
-		return toPlayerAnalysisClipDetailResponseDTO(playerVideoClip);
+	    PlayerAnalysisClipGenerationCommand generationCommand =
+	        createGenerationCommand(
+	            playerVideoClip,
+	            originalVideoFilePath,
+	            previousClipUrl
+	        );
+
+	    requestPlayerAnalysisClipFileGenerationAfterCommit(
+	        generationCommand
+	    );
+
+	    return toPlayerAnalysisClipDetailResponseDTO(
+	        playerVideoClip
+	    );
 	}
 	
 	// 선수 개인 분석 클립과 드로잉 통합 수정
 	@Transactional
-	public UpdatePlayerAnalysisClipWithDrawingsResponseDTO updatePlayerAnalysisClipWithDrawings(
+	public UpdatePlayerAnalysisClipWithDrawingsResponseDTO
+	    updatePlayerAnalysisClipWithDrawings(
 	        Integer playerClipId,
 	        UpdatePlayerAnalysisClipWithDrawingsRequestDTO request,
 	        CustomUserPrincipal principal
-	) {
-	    playerAnalysisClipValidator.validateCanCreateOrUpdate(principal);
-	    playerAnalysisClipValidator.validateUpdateWithDrawingsRequest(request);
+	    ) {
+
+	    playerAnalysisClipValidator
+	        .validateCanCreateOrUpdate(principal);
+
+	    playerAnalysisClipValidator
+	        .validateUpdateWithDrawingsRequest(request);
 
 	    PlayerVideoClipEntity playerVideoClip =
-	            playerAnalysisClipValidator.findValidPlayerAnalysisClip(playerClipId);
+	        playerAnalysisClipValidator
+	            .findValidPlayerAnalysisClip(playerClipId);
 
-	    playerAnalysisClipValidator.validateCanUpdateGenerationTarget(playerVideoClip);
+	    playerAnalysisClipValidator
+	        .validateCanUpdateGenerationTarget(playerVideoClip);
 
 	    GameVideoUploadEntity matchVideo =
-	            playerAnalysisClipValidator.findValidMatchVideoWithDuration(
-	                    playerVideoClip.getGameVideoUpload().getId()
+	        playerAnalysisClipValidator
+	            .findValidMatchVideoWithDuration(
+	                playerVideoClip
+	                    .getGameVideoUpload()
+	                    .getId()
 	            );
 
-	    MemberEntity player = playerAnalysisClipValidator.findValidPlayer(request.getPlayerId());
+	    MemberEntity player =
+	        playerAnalysisClipValidator
+	            .findValidPlayer(request.getPlayerId());
 
 	    playerAnalysisClipValidator.validateClipTimeRange(
-	            request.getStartTimeSec(),
-	            request.getEndTimeSec(),
-	            matchVideo
+	        request.getStartTimeSec(),
+	        request.getEndTimeSec(),
+	        matchVideo
 	    );
 
-	    boolean fileGenerationRequired = isPlayerClipFileGenerationRequired(
+	    boolean clipTimeChanged =
+	        isPlayerClipTimeChanged(
+	            playerVideoClip,
+	            request.getStartTimeSec(),
+	            request.getEndTimeSec()
+	        );
+
+	    boolean fileGenerationRequired =
+	        isPlayerClipFileGenerationRequired(
 	            playerVideoClip,
 	            request
-	    );
+	        );
 
 	    Path originalVideoFilePath = null;
 	    String previousClipUrl = playerVideoClip.getUrl();
 
 	    if (fileGenerationRequired) {
 	        originalVideoFilePath =
-	                playerAnalysisClipLocalFileService.resolveOriginalMatchVideoFilePath(matchVideo);
+	            playerAnalysisClipLocalFileService
+	                .resolveOriginalMatchVideoFilePath(matchVideo);
+	    }
+
+	    if (clipTimeChanged) {
+	        videoBookmarkService
+	            .softDeleteBookmarksByPlayerClipId(playerClipId);
 	    }
 
 	    playerVideoClip.setPlayer(player);
 	    playerVideoClip.setClipType(request.getClipType());
 	    playerVideoClip.setTitle(request.getTitle().trim());
-	    playerVideoClip.setComment(playerAnalysisClipValidator.trimNullableText(request.getComment()));
-	    playerVideoClip.setStartTimeSec(request.getStartTimeSec());
-	    playerVideoClip.setEndTimeSec(request.getEndTimeSec());
+	    playerVideoClip.setComment(
+	        playerAnalysisClipValidator.trimNullableText(
+	            request.getComment()
+	        )
+	    );
+	    playerVideoClip.setStartTimeSec(
+	        request.getStartTimeSec()
+	    );
+	    playerVideoClip.setEndTimeSec(
+	        request.getEndTimeSec()
+	    );
 
 	    softDeleteExistingDrawings(playerVideoClip);
 
-	    MemberEntity editor = playerAnalysisClipValidator.findEditor(principal);
+	    MemberEntity editor =
+	        playerAnalysisClipValidator.findEditor(principal);
 
 	    saveDrawingsIfExists(
-	            request.getDrawings(),
-	            playerVideoClip,
-	            editor
+	        request.getDrawings(),
+	        playerVideoClip,
+	        editor
 	    );
 
 	    if (fileGenerationRequired) {
 	        playerVideoClip.setUrl(null);
-	        playerVideoClip.setStatus(VideoUploadStatusEnum.PROCESSING);
+	        playerVideoClip.setStatus(
+	            VideoUploadStatusEnum.PROCESSING
+	        );
 
 	        PlayerAnalysisClipGenerationCommand generationCommand =
-	                createGenerationCommand(
-	                        playerVideoClip,
-	                        originalVideoFilePath,
-	                        previousClipUrl
-	                );
+	            createGenerationCommand(
+	                playerVideoClip,
+	                originalVideoFilePath,
+	                previousClipUrl
+	            );
 
-	        requestPlayerAnalysisClipFileGenerationAfterCommit(generationCommand);
+	        requestPlayerAnalysisClipFileGenerationAfterCommit(
+	            generationCommand
+	        );
+	    }
+
+	    String responseMessage;
+
+	    if (clipTimeChanged) {
+	        responseMessage =
+	            "선수 개인 분석 클립 수정 후 파일 재생성이 "
+	                + "요청되었습니다. 기존 클립이 수정되어 "
+	                + "해당 클립에서 생성한 북마크가 모두 "
+	                + "삭제되었습니다.";
+	    } else if (fileGenerationRequired) {
+	        responseMessage =
+	            "선수 개인 분석 클립 수정 후 파일 재생성이 "
+	                + "요청되었습니다.";
+	    } else {
+	        responseMessage =
+	            "선수 개인 분석 클립과 드로잉이 수정되었습니다.";
 	    }
 
 	    return new UpdatePlayerAnalysisClipWithDrawingsResponseDTO(
-	            playerVideoClip.getId(),
-	            playerVideoClip.getStatus(),
-	            fileGenerationRequired,
-	            fileGenerationRequired
-	                    ? "선수 개인 분석 클립 수정 후 파일 재생성이 요청되었습니다."
-	                    : "선수 개인 분석 클립과 드로잉이 수정되었습니다."
+	        playerVideoClip.getId(),
+	        playerVideoClip.getStatus(),
+	        fileGenerationRequired,
+	        responseMessage
 	    );
 	}
 
 	// 선수 개인 분석 클립 삭제
 	@Transactional
 	public void deletePlayerAnalysisClip(
-			Integer playerClipId,
-			CustomUserPrincipal principal
+	    Integer playerClipId,
+	    CustomUserPrincipal principal
 	) {
-		playerAnalysisClipValidator.validateCanDelete(principal);
+	    playerAnalysisClipValidator.validateCanDelete(principal);
 
-		PlayerVideoClipEntity playerVideoClip = playerAnalysisClipValidator.findValidPlayerAnalysisClip(playerClipId);
+	    PlayerVideoClipEntity playerVideoClip =
+	        playerAnalysisClipValidator
+	            .findValidPlayerAnalysisClip(playerClipId);
 
-		playerVideoClip.setIsDeleted(true);
+	    playerVideoClip.setIsDeleted(true);
+
+	    videoBookmarkService
+	        .softDeleteBookmarksByPlayerClipId(playerClipId);
 	}
 
 	// 생성 중 상태의 선수 개인 분석 클립 Entity 생성
@@ -666,6 +764,23 @@ public class PlayerAnalysisClipService {
 	) {
 		return PlayerAnalysisClipDetailResponseDTO.from(playerVideoClip);
 	}
+	
+	/*
+	 * 선수 개인 분석 클립의 시작 또는 종료 시간이
+	 * 변경됐는지 확인.
+	 * 제목, 코멘트, 클립 유형, 대상 선수, 드로잉만
+	 * 변경된 경우 연결 북마크는 유지.
+	 */
+	private boolean isPlayerClipTimeChanged(
+	    PlayerVideoClipEntity playerVideoClip,
+	    Integer requestedStartTimeSec,
+	    Integer requestedEndTimeSec
+	) {
+	    return !playerVideoClip.getStartTimeSec()
+	        .equals(requestedStartTimeSec)
+	        || !playerVideoClip.getEndTimeSec()
+	            .equals(requestedEndTimeSec);
+	}
 
 	// 선수 개인 분석 클립 파일 재생성 필요 여부 판단
 	private boolean isPlayerClipFileGenerationRequired(
@@ -695,6 +810,31 @@ public class PlayerAnalysisClipService {
 	    for (PlayerVideoClipDrawingEntity drawing : existingDrawings) {
 	        drawing.setIsDeleted(true);
 	    }
+	}
+	
+	/*
+	 * 기존 선수 개인 분석 클립 북마크를 삭제해야 하는지 판단.
+	 * 원본 경기 영상이나 영상 시간 구간이 변경되면
+	 * 기존 북마크의 영상 기준이 달라지므로 모두 삭제
+	 */
+	private boolean isPlayerClipBookmarkInvalidationRequired(
+	    PlayerVideoClipEntity playerVideoClip,
+	    GameVideoUploadEntity requestedMatchVideo,
+	    Integer requestedStartTimeSec,
+	    Integer requestedEndTimeSec
+	) {
+	    boolean matchVideoChanged =
+	        !playerVideoClip
+	            .getGameVideoUpload()
+	            .getId()
+	            .equals(requestedMatchVideo.getId());
+
+	    return matchVideoChanged
+	        || isPlayerClipTimeChanged(
+	            playerVideoClip,
+	            requestedStartTimeSec,
+	            requestedEndTimeSec
+	        );
 	}
 	
 }
