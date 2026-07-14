@@ -1,35 +1,35 @@
 // 경기 영상 목록, 상세, 수정, 삭제와 분석 작업 패널 렌더링을 관리하는 파일
 
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent, RefObject } from "react";
+
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { getManagementPlayerAnalysisClipDetail } from "../api/playerAnalysisClipApi";
-import { getTeamAnalysisClipDetail } from "../api/teamAnalysisClipApi";
-import PlayerAnalysisClipEditorPanel from "../components/analysis/PlayerAnalysisClipEditorPanel";
-import PlayerRecordEventEditorPanel from "../components/analysis/PlayerRecordEventEditorPanel";
-import TeamAnalysisClipEditorPanel from "../components/analysis/TeamAnalysisClipEditorPanel";
-import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
-import { useAuth } from "../hooks/useAuth";
-import { getApiErrorMessage } from "../utils/apiError";
-import { createVideoSourceUrl } from "../utils/videoUrl";
-import {
-  ROUTES,
-  createMatchVideoAnalysisRoute,
-  type MatchVideoAnalysisMode,
-} from "../constants/routes";
 import {
   deleteMatchVideo,
   getMatchVideoDetail,
   getMatchVideos,
   updateMatchVideo,
 } from "../api/matchVideoApi";
+import { getManagementPlayerAnalysisClipDetail } from "../api/playerAnalysisClipApi";
+import { getTeamAnalysisClipDetail } from "../api/teamAnalysisClipApi";
+import PlayerAnalysisClipEditorPanel from "../components/analysis/PlayerAnalysisClipEditorPanel";
+import PlayerRecordEventEditorPanel from "../components/analysis/PlayerRecordEventEditorPanel";
+import TeamAnalysisClipEditorPanel from "../components/analysis/TeamAnalysisClipEditorPanel";
+import VideoBookmarkSidebar from "../components/bookmark/VideoBookmarkSidebar";
+import { ROUTES, createMatchVideoAnalysisRoute } from "../constants/routes";
+import type { MatchVideoAnalysisMode } from "../constants/routes";
+import { useAuth } from "../hooks/useAuth";
+import { AuthenticatedLayout } from "../layouts/AuthenticatedLayout";
 import type {
   MatchResult,
   MatchVideoDetailResponse,
   MatchVideoListItem,
   UpdateMatchVideoRequest,
 } from "../types/matchVideo";
+import type { VideoBookmarkResponse } from "../types/videoBookmark";
+import { getApiErrorMessage } from "../utils/apiError";
+import { createVideoSourceUrl } from "../utils/videoUrl";
 
 type AnalysisMode = "none" | MatchVideoAnalysisMode;
 
@@ -56,6 +56,30 @@ function formatDuration(durationSec: number | null) {
   }
 
   return `${minutes}분 ${seconds}초`;
+}
+
+function formatBookmarkTime(timeSec: number) {
+  if (!Number.isFinite(timeSec) || timeSec < 0) {
+    return "00:00";
+  }
+
+  const totalSeconds = Math.floor(timeSec);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return [
+      String(hours).padStart(2, "0"),
+      String(minutes).padStart(2, "0"),
+      String(seconds).padStart(2, "0"),
+    ].join(":");
+  }
+
+  return [
+    String(minutes).padStart(2, "0"),
+    String(seconds).padStart(2, "0"),
+  ].join(":");
 }
 
 function toDateTimeLocalValue(dateTime: string) {
@@ -118,29 +142,59 @@ export default function MatchVideoPage() {
   const [searchParams] = useSearchParams();
   const { member } = useAuth();
 
+  const matchVideoRef = useRef<HTMLVideoElement | null>(null);
+
   const analysisMode = parseAnalysisMode(searchParams);
+
   const teamClipId = parseNumberSearchParam(searchParams, "teamClipId");
+
   const playerClipId = parseNumberSearchParam(searchParams, "playerClipId");
 
   const [matchVideos, setMatchVideos] = useState<MatchVideoListItem[]>([]);
+
   const [selectedVideo, setSelectedVideo] =
     useState<MatchVideoDetailResponse | null>(null);
+
   const [form, setForm] = useState<UpdateMatchVideoRequest>(INITIAL_FORM_STATE);
 
   const [isEditMode, setIsEditMode] = useState(false);
+
   const [page, setPage] = useState(0);
+
   const [totalPages, setTotalPages] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState("");
+
   const [successMessage, setSuccessMessage] = useState("");
+
+  const [isBookmarkSidebarOpen, setIsBookmarkSidebarOpen] = useState(false);
+
+  const [currentVideoTimeSec, setCurrentVideoTimeSec] = useState(0);
+
+  const [selectedBookmark, setSelectedBookmark] =
+    useState<VideoBookmarkResponse | null>(null);
 
   const isManager =
     member?.memberRole === "COACH" || member?.memberRole === "ANALYST";
+
   const isCoach = member?.memberRole === "COACH";
+
   const isAnalysisModeActive = analysisMode !== "none";
+
+  const selectedVideoDurationSec = selectedVideo?.durationSec;
+
+  const bookmarkInitialStartTimeSec = selectedBookmark?.bookmarkTimeSec;
+
+  const bookmarkInitialEndTimeSec =
+    selectedBookmark &&
+    typeof selectedVideoDurationSec === "number" &&
+    selectedVideoDurationSec > selectedBookmark.bookmarkTimeSec
+      ? selectedVideoDurationSec
+      : undefined;
 
   useEffect(() => {
     let ignore = false;
@@ -203,6 +257,9 @@ export default function MatchVideoPage() {
         setSelectedVideo(matchVideoDetail);
         setForm(createFormFromDetail(matchVideoDetail));
         setIsEditMode(false);
+        setIsBookmarkSidebarOpen(false);
+        setSelectedBookmark(null);
+        setCurrentVideoTimeSec(0);
         setErrorMessage("");
       } catch (error) {
         if (ignore) {
@@ -252,6 +309,9 @@ export default function MatchVideoPage() {
         setSelectedVideo(matchVideoDetail);
         setForm(createFormFromDetail(matchVideoDetail));
         setIsEditMode(false);
+        setIsBookmarkSidebarOpen(false);
+        setSelectedBookmark(null);
+        setCurrentVideoTimeSec(0);
         setErrorMessage("");
       } catch (error) {
         if (ignore) {
@@ -302,44 +362,89 @@ export default function MatchVideoPage() {
       setIsEditMode(false);
       setForm(createFormFromDetail(detail));
 
+      setIsBookmarkSidebarOpen(false);
+      setSelectedBookmark(null);
+      setCurrentVideoTimeSec(0);
+
       if (
         analysisMode === "team-clip-edit" ||
         analysisMode === "player-clip-edit"
       ) {
-        navigate(ROUTES.MATCH_VIDEO, { replace: true });
+        navigate(ROUTES.MATCH_VIDEO, {
+          replace: true,
+        });
       }
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error));
     }
   }
 
-  function handleChangeAnalysisMode(nextAnalysisMode: MatchVideoAnalysisMode) {
+  function navigateToAnalysisMode(nextAnalysisMode: MatchVideoAnalysisMode) {
     navigate(
       createMatchVideoAnalysisRoute({
         analysisMode: nextAnalysisMode,
       }),
-      { replace: true },
+      {
+        replace: true,
+      },
     );
   }
 
+  function handleChangeAnalysisMode(nextAnalysisMode: MatchVideoAnalysisMode) {
+    setSelectedBookmark(null);
+    setIsBookmarkSidebarOpen(false);
+
+    navigateToAnalysisMode(nextAnalysisMode);
+  }
+
+  function handleStartAnalysisFromBookmark(
+    nextAnalysisMode: MatchVideoAnalysisMode,
+  ) {
+    if (!selectedVideo || !selectedBookmark) {
+      setErrorMessage("분석 작업에 사용할 북마크를 먼저 선택해주세요.");
+      return;
+    }
+
+    if (selectedVideo.durationSec === null || selectedVideo.durationSec <= 0) {
+      setErrorMessage(
+        "경기 영상 길이 정보가 없어 북마크를 분석 작업에 사용할 수 없습니다.",
+      );
+      return;
+    }
+
+    if (selectedBookmark.bookmarkTimeSec >= selectedVideo.durationSec) {
+      setErrorMessage(
+        "영상 마지막 시점의 북마크는 분석 구간 시작 시간으로 사용할 수 없습니다. 북마크 시간을 수정해주세요.",
+      );
+      return;
+    }
+
+    setErrorMessage("");
+    setIsBookmarkSidebarOpen(false);
+
+    navigateToAnalysisMode(nextAnalysisMode);
+  }
+
   function handleCloseAnalysisMode() {
-    navigate(ROUTES.MATCH_VIDEO, { replace: true });
+    navigate(ROUTES.MATCH_VIDEO, {
+      replace: true,
+    });
   }
 
   function handleChangeForm(
     field: keyof UpdateMatchVideoRequest,
     value: string,
   ) {
-    setForm((prevForm) => ({
-      ...prevForm,
+    setForm((previousForm) => ({
+      ...previousForm,
       [field]:
         field === "homeScore" || field === "awayScore" ? Number(value) : value,
     }));
   }
 
   function handleChangeMatchResult(value: string) {
-    setForm((prevForm) => ({
-      ...prevForm,
+    setForm((previousForm) => ({
+      ...previousForm,
       matchResult: value as MatchResult,
     }));
   }
@@ -455,6 +560,10 @@ export default function MatchVideoPage() {
       setSelectedVideo(null);
       setForm(INITIAL_FORM_STATE);
       setIsEditMode(false);
+      setIsBookmarkSidebarOpen(false);
+      setSelectedBookmark(null);
+      setCurrentVideoTimeSec(0);
+
       handleCloseAnalysisMode();
 
       await fetchMatchVideos(0);
@@ -463,6 +572,81 @@ export default function MatchVideoPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleVideoTimeChange(nextTimeSec: number) {
+    const safeTimeSec =
+      Number.isFinite(nextTimeSec) && nextTimeSec >= 0
+        ? Math.floor(nextTimeSec)
+        : 0;
+
+    setCurrentVideoTimeSec((previousTimeSec) =>
+      previousTimeSec === safeTimeSec ? previousTimeSec : safeTimeSec,
+    );
+  }
+
+  function handleOpenBookmarkSidebar() {
+    if (!selectedVideo) {
+      setErrorMessage("북마크를 확인할 경기 영상을 먼저 선택해주세요.");
+      return;
+    }
+
+    if (selectedVideo.status !== "READY") {
+      setErrorMessage(
+        "재생 가능한 READY 상태 영상에서만 북마크를 관리할 수 있습니다.",
+      );
+      return;
+    }
+
+    setErrorMessage("");
+    setIsBookmarkSidebarOpen(true);
+  }
+
+  /**
+   * 선택한 북마크 시간으로 이동한다.
+   *
+   * 자동 재생은 하지 않고 영상을 일시 정지한 상태로 유지한다.
+   * 사이드바를 닫은 뒤 영상 위치까지 화면을 이동한다.
+   */
+  function handleSelectBookmark(bookmark: VideoBookmarkResponse) {
+    const video = matchVideoRef.current;
+
+    if (!video) {
+      setErrorMessage("경기 영상 플레이어를 찾을 수 없습니다.");
+      return;
+    }
+
+    const requestedTimeSec = Math.max(0, bookmark.bookmarkTimeSec);
+
+    const nextTimeSec =
+      Number.isFinite(video.duration) && video.duration > 0
+        ? Math.min(requestedTimeSec, video.duration)
+        : requestedTimeSec;
+
+    video.pause();
+    video.currentTime = nextTimeSec;
+
+    setCurrentVideoTimeSec(Math.floor(nextTimeSec));
+    setSelectedBookmark(bookmark);
+    setIsBookmarkSidebarOpen(false);
+    setErrorMessage("");
+
+    window.requestAnimationFrame(() => {
+      video.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      video.focus({
+        preventScroll: true,
+      });
+    });
+  }
+
+  function handleBookmarkDeleted(bookmarkId: number) {
+    setSelectedBookmark((currentBookmark) =>
+      currentBookmark?.bookmarkId === bookmarkId ? null : currentBookmark,
+    );
   }
 
   function handleAnalysisSaved() {
@@ -491,12 +675,15 @@ export default function MatchVideoPage() {
         </section>
 
         {isLoading && <p>경기 영상을 불러오는 중입니다.</p>}
+
         {errorMessage && <p className="error-message">{errorMessage}</p>}
+
         {successMessage && <p className="success-message">{successMessage}</p>}
 
         {isManager && isAnalysisModeActive && selectedVideo === null && (
           <section className="card">
             <h2>분석 작업을 진행할 경기 영상 준비</h2>
+
             <p className="helper-text">
               수정 모드는 기존 클립의 원본 경기 영상을 자동으로 불러옵니다. 등록
               모드라면 아래 경기 영상 목록에서 작업할 영상을 선택하세요.
@@ -519,13 +706,16 @@ export default function MatchVideoPage() {
                       onClick={() => handleSelectVideo(matchVideo.matchVideoId)}
                     >
                       <strong>{matchVideo.title}</strong>
+
                       <span>
                         {matchVideo.gameDate} / {matchVideo.place}
                       </span>
+
                       <span>
                         {matchVideo.homeScore} : {matchVideo.awayScore} /{" "}
                         {matchVideo.matchResult}
                       </span>
+
                       <span>
                         상태: {matchVideo.status} / 길이:{" "}
                         {formatDuration(matchVideo.durationSec)}
@@ -544,9 +734,11 @@ export default function MatchVideoPage() {
               >
                 이전
               </button>
+
               <span>
                 {page + 1} / {Math.max(totalPages, 1)}
               </span>
+
               <button
                 type="button"
                 disabled={page + 1 >= totalPages}
@@ -564,39 +756,118 @@ export default function MatchVideoPage() {
               <MatchVideoPlayer
                 matchVideoId={selectedVideo.matchVideoId}
                 videoUrl={selectedVideo.url}
+                videoRef={matchVideoRef}
+                onTimeChange={handleVideoTimeChange}
               />
+
+              {isManager && (
+                <div className="button-row">
+                  <button
+                    type="button"
+                    onClick={handleOpenBookmarkSidebar}
+                    disabled={selectedVideo.status !== "READY"}
+                  >
+                    북마크 목록
+                  </button>
+
+                  <span className="helper-text">
+                    현재 재생 시간: {formatBookmarkTime(currentVideoTimeSec)}
+                  </span>
+                </div>
+              )}
+
+              {isManager && selectedBookmark && (
+                <section className="video-bookmark-selection">
+                  <h3>선택한 북마크</h3>
+
+                  <dl className="detail-list">
+                    <div>
+                      <dt>시간</dt>
+                      <dd>
+                        {formatBookmarkTime(selectedBookmark.bookmarkTimeSec)}
+                      </dd>
+                    </div>
+
+                    <div>
+                      <dt>제목</dt>
+                      <dd>{selectedBookmark.title}</dd>
+                    </div>
+
+                    <div>
+                      <dt>메모</dt>
+                      <dd>{selectedBookmark.memo ?? "-"}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="button-row">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleStartAnalysisFromBookmark("team-clip-create")
+                      }
+                    >
+                      팀 분석 클립 등록
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleStartAnalysisFromBookmark("player-clip-create")
+                      }
+                    >
+                      선수 개인 분석 클립 등록
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleStartAnalysisFromBookmark("player-record-event")
+                      }
+                    >
+                      선수 기록 이벤트 등록
+                    </button>
+                  </div>
+                </section>
+              )}
 
               <dl className="detail-list">
                 <div>
                   <dt>제목</dt>
                   <dd>{selectedVideo.title}</dd>
                 </div>
+
                 <div>
                   <dt>경기일시</dt>
                   <dd>{selectedVideo.gameDate}</dd>
                 </div>
+
                 <div>
                   <dt>장소</dt>
                   <dd>{selectedVideo.place}</dd>
                 </div>
+
                 <div>
                   <dt>점수</dt>
                   <dd>
                     {selectedVideo.homeScore} : {selectedVideo.awayScore}
                   </dd>
                 </div>
+
                 <div>
                   <dt>결과</dt>
                   <dd>{selectedVideo.matchResult}</dd>
                 </div>
+
                 <div>
                   <dt>상태</dt>
                   <dd>{selectedVideo.status}</dd>
                 </div>
+
                 <div>
                   <dt>영상 길이</dt>
                   <dd>{formatDuration(selectedVideo.durationSec)}</dd>
                 </div>
+
                 <div>
                   <dt>업로더</dt>
                   <dd>{selectedVideo.uploaderName}</dd>
@@ -671,12 +942,26 @@ export default function MatchVideoPage() {
               {(analysisMode === "team-clip-create" ||
                 analysisMode === "team-clip-edit") && (
                 <TeamAnalysisClipEditorPanel
-                  key={`team-clip-${analysisMode}-${
-                    selectedVideo.matchVideoId
-                  }-${teamClipId ?? "new"}`}
+                  key={[
+                    "team-clip",
+                    analysisMode,
+                    selectedVideo.matchVideoId,
+                    teamClipId ?? "new",
+                    selectedBookmark?.bookmarkId ?? "no-bookmark",
+                  ].join("-")}
                   mode={analysisMode === "team-clip-edit" ? "edit" : "create"}
                   matchVideo={selectedVideo}
                   teamClipId={teamClipId}
+                  initialStartTimeSec={
+                    analysisMode === "team-clip-create"
+                      ? bookmarkInitialStartTimeSec
+                      : undefined
+                  }
+                  initialEndTimeSec={
+                    analysisMode === "team-clip-create"
+                      ? bookmarkInitialEndTimeSec
+                      : undefined
+                  }
                   onSaved={handleAnalysisSaved}
                 />
               )}
@@ -684,20 +969,40 @@ export default function MatchVideoPage() {
               {(analysisMode === "player-clip-create" ||
                 analysisMode === "player-clip-edit") && (
                 <PlayerAnalysisClipEditorPanel
-                  key={`player-clip-${analysisMode}-${
-                    selectedVideo.matchVideoId
-                  }-${playerClipId ?? "new"}`}
+                  key={[
+                    "player-clip",
+                    analysisMode,
+                    selectedVideo.matchVideoId,
+                    playerClipId ?? "new",
+                    selectedBookmark?.bookmarkId ?? "no-bookmark",
+                  ].join("-")}
                   mode={analysisMode === "player-clip-edit" ? "edit" : "create"}
                   matchVideo={selectedVideo}
                   playerClipId={playerClipId}
+                  initialStartTimeSec={
+                    analysisMode === "player-clip-create"
+                      ? bookmarkInitialStartTimeSec
+                      : undefined
+                  }
+                  initialEndTimeSec={
+                    analysisMode === "player-clip-create"
+                      ? bookmarkInitialEndTimeSec
+                      : undefined
+                  }
                   onSaved={handleAnalysisSaved}
                 />
               )}
 
               {analysisMode === "player-record-event" && (
                 <PlayerRecordEventEditorPanel
-                  key={`player-record-event-${selectedVideo.matchVideoId}`}
+                  key={[
+                    "player-record-event",
+                    selectedVideo.matchVideoId,
+                    selectedBookmark?.bookmarkId ?? "no-bookmark",
+                  ].join("-")}
                   matchVideo={selectedVideo}
+                  initialStartTimeSec={bookmarkInitialStartTimeSec}
+                  initialEndTimeSec={bookmarkInitialEndTimeSec}
                   onSaved={handleAnalysisSaved}
                 />
               )}
@@ -720,12 +1025,25 @@ export default function MatchVideoPage() {
                 <button type="submit" disabled={isSubmitting}>
                   수정 저장
                 </button>
+
                 <button type="button" onClick={handleCancelEdit}>
                   취소
                 </button>
               </div>
             </form>
           </section>
+        )}
+
+        {isManager && selectedVideo && !isAnalysisModeActive && (
+          <VideoBookmarkSidebar
+            isOpen={isBookmarkSidebarOpen}
+            matchVideoId={selectedVideo.matchVideoId}
+            currentTimeSec={currentVideoTimeSec}
+            selectedBookmarkId={selectedBookmark?.bookmarkId}
+            onClose={() => setIsBookmarkSidebarOpen(false)}
+            onSelectBookmark={handleSelectBookmark}
+            onBookmarkDeleted={handleBookmarkDeleted}
+          />
         )}
       </main>
     </AuthenticatedLayout>
@@ -735,13 +1053,31 @@ export default function MatchVideoPage() {
 type MatchVideoPlayerProps = {
   matchVideoId: number;
   videoUrl: string;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  onTimeChange: (timeSec: number) => void;
 };
 
-function MatchVideoPlayer({ matchVideoId, videoUrl }: MatchVideoPlayerProps) {
+function MatchVideoPlayer({
+  matchVideoId,
+  videoUrl,
+  videoRef,
+  onTimeChange,
+}: MatchVideoPlayerProps) {
   const videoSourceUrl = createVideoSourceUrl(videoUrl);
 
   return (
-    <video key={matchVideoId} controls width="100%">
+    <video
+      key={matchVideoId}
+      ref={videoRef}
+      controls
+      width="100%"
+      tabIndex={-1}
+      onLoadedMetadata={(event) =>
+        onTimeChange(event.currentTarget.currentTime)
+      }
+      onTimeUpdate={(event) => onTimeChange(event.currentTarget.currentTime)}
+      onSeeked={(event) => onTimeChange(event.currentTarget.currentTime)}
+    >
       <source src={videoSourceUrl} type="video/mp4" />
       브라우저에서 video 태그를 지원하지 않습니다.
     </video>

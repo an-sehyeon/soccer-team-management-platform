@@ -34,6 +34,8 @@ type PlayerAnalysisClipEditorPanelProps = {
   mode: "create" | "edit";
   matchVideo: MatchVideoDetailResponse;
   playerClipId?: number;
+  initialStartTimeSec?: number;
+  initialEndTimeSec?: number;
   onSaved?: () => void;
 };
 
@@ -83,13 +85,61 @@ function createLocalId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function createInitialTimeRange(
+  matchVideo: MatchVideoDetailResponse,
+  initialStartTimeSec?: number,
+  initialEndTimeSec?: number,
+) {
+  const durationSec = matchVideo.durationSec;
+
+  if (durationSec === null || durationSec <= 0) {
+    return {
+      startTimeSec: 0,
+      endTimeSec: 0,
+    };
+  }
+
+  const requestedStartTimeSec =
+    initialStartTimeSec !== undefined && Number.isInteger(initialStartTimeSec)
+      ? initialStartTimeSec
+      : 0;
+
+  const safeStartTimeSec = Math.min(
+    Math.max(requestedStartTimeSec, 0),
+    Math.max(durationSec - 1, 0),
+  );
+
+  const requestedEndTimeSec =
+    initialEndTimeSec !== undefined && Number.isInteger(initialEndTimeSec)
+      ? initialEndTimeSec
+      : safeStartTimeSec + 1;
+
+  const safeEndTimeSec = Math.min(
+    Math.max(requestedEndTimeSec, safeStartTimeSec + 1),
+    durationSec,
+  );
+
+  return {
+    startTimeSec: safeStartTimeSec,
+    endTimeSec: safeEndTimeSec,
+  };
+}
+
 function createInitialFormState(
   matchVideo: MatchVideoDetailResponse,
+  initialStartTimeSec?: number,
+  initialEndTimeSec?: number,
 ): PlayerClipFormState {
+  const initialTimeRange = createInitialTimeRange(
+    matchVideo,
+    initialStartTimeSec,
+    initialEndTimeSec,
+  );
+
   return {
     ...INITIAL_FORM_STATE,
-    endTimeSec:
-      matchVideo.durationSec !== null && matchVideo.durationSec > 1 ? "1" : "0",
+    startTimeSec: String(initialTimeRange.startTimeSec),
+    endTimeSec: String(initialTimeRange.endTimeSec),
   };
 }
 
@@ -154,13 +204,19 @@ export default function PlayerAnalysisClipEditorPanel({
   mode,
   matchVideo,
   playerClipId,
+  initialStartTimeSec,
+  initialEndTimeSec,
   onSaved,
 }: PlayerAnalysisClipEditorPanelProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [players, setPlayers] = useState<PlayerSelectItem[]>([]);
   const [form, setForm] = useState<PlayerClipFormState>(() =>
-    createInitialFormState(matchVideo),
+    createInitialFormState(
+      matchVideo,
+      mode === "create" ? initialStartTimeSec : undefined,
+      mode === "create" ? initialEndTimeSec : undefined,
+    ),
   );
   const [drawingForm, setDrawingForm] = useState<DrawingFormState>(() =>
     createInitialDrawingFormState(matchVideo),
@@ -581,7 +637,13 @@ export default function PlayerAnalysisClipEditorPanel({
       setSuccessMessage(response.message);
 
       if (mode === "create") {
-        setForm(createInitialFormState(matchVideo));
+        setForm(
+          createInitialFormState(
+            matchVideo,
+            initialStartTimeSec,
+            initialEndTimeSec,
+          ),
+        );
         setDrawingForm(createInitialDrawingFormState(matchVideo));
         setDrawings([]);
         setIsDrawingMode(false);
