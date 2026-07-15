@@ -15,8 +15,7 @@ import com.soccer.platform.repository.PlayerRecordRepository;
 import lombok.RequiredArgsConstructor;
 
 // 선수 기록 전용 Validator
-// 선수 기록 기능에만 필요한 요청값 검증, 중복 기록 검증, 선수 본인 기록 접근 검증 담당.
-
+// 선수 기록 요청값, 중복 기록, 선수 본인 접근 권한을 검증한다.
 @Component
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,44 +27,22 @@ public class PlayerRecordValidator {
     private final PlayerRecordRepository playerRecordRepository;
 
     /*
-     * 선수 기록 등록 요청값을 검증
-     * 1. uploadId, playerId 필수값을 검증
-     * 2. 기록 수치가 0~255 범위인지 검증
-     * 3. 성공 수가 시도 수보다 크지 않은지 검증
+     * 선수 기록 등록 요청값을 검증한다.
+     * 1. uploadId와 playerId 필수값을 검증한다.
+     * 2. 모든 기록 수치가 0~255 범위인지 검증한다.
+     *
+     * 유효 슈팅과 슈팅, 성공 패스와 패스 등 기록 간 추가 정합성 검증은
+     * 현재 정책에서 적용하지 않는다.
      */
     public void validateCreateRequest(CreatePlayerRecordRequestDTO request) {
         if (request == null) {
             throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
         }
 
-        validateRequiredIds(request.getUploadId(), request.getPlayerId());
-
-        validateRecordValues(
-                request.getMinutesPlayed(),
-                request.getGoals(),
-                request.getAssists(),
-                request.getShots(),
-                request.getShotsOnTarget(),
-                request.getPasses(),
-                request.getSuccessfulPasses(),
-                request.getDribbles(),
-                request.getSuccessfulDribbles(),
-                request.getTackles(),
-                request.getInterceptions(),
-                request.getClearances(),
-                request.getSaves(),
-                request.getYellowCards(),
-                request.getRedCards()
+        validateRequiredIds(
+                request.getUploadId(),
+                request.getPlayerId()
         );
-    }
-
-    // 선수 기록 수정 요청값을 검증
-    public void validateUpdateRequest(UpdatePlayerRecordRequestDTO request) {
-        if (request == null) {
-            throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
-        }
-
-        validateRequiredIds(request.getUploadId(), request.getPlayerId());
 
         validateRecordValues(
                 request.getMinutesPlayed(),
@@ -87,15 +64,51 @@ public class PlayerRecordValidator {
     }
 
     /*
-     * 선수 기록 등록 중복 여부를 검증
-     * 같은 경기 영상과 같은 선수 조합의 활성 기록은 1개만 허용
+     * 선수 기록 수정 요청값을 검증한다.
+     * 모든 기록 수치는 0~255 범위만 검증한다.
+     */
+    public void validateUpdateRequest(UpdatePlayerRecordRequestDTO request) {
+        if (request == null) {
+            throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
+        }
+
+        validateRequiredIds(
+                request.getUploadId(),
+                request.getPlayerId()
+        );
+
+        validateRecordValues(
+                request.getMinutesPlayed(),
+                request.getGoals(),
+                request.getAssists(),
+                request.getShots(),
+                request.getShotsOnTarget(),
+                request.getPasses(),
+                request.getSuccessfulPasses(),
+                request.getDribbles(),
+                request.getSuccessfulDribbles(),
+                request.getTackles(),
+                request.getInterceptions(),
+                request.getClearances(),
+                request.getSaves(),
+                request.getYellowCards(),
+                request.getRedCards()
+        );
+    }
+
+    /*
+     * 선수 기록 등록 중복 여부를 검증한다.
+     * 같은 경기 영상과 같은 선수 조합의 활성 기록은 1개만 허용한다.
      */
     public void validateDuplicateForCreate(
             GameVideoUploadEntity matchVideo,
             MemberEntity player
     ) {
         boolean exists = playerRecordRepository
-                .existsByGameVideoUploadAndPlayerAndIsDeletedFalse(matchVideo, player);
+                .existsByGameVideoUploadAndPlayerAndIsDeletedFalse(
+                        matchVideo,
+                        player
+                );
 
         if (exists) {
             throw new CustomException(ErrorCode.DUPLICATE_PLAYER_RECORD);
@@ -103,8 +116,9 @@ public class PlayerRecordValidator {
     }
 
     /*
-     * 선수 기록 수정 중복 여부를 검증
-     * 자기 자신을 제외하고 같은 경기 영상과 같은 선수 조합의 활성 기록이 있으면 실패
+     * 선수 기록 수정 중복 여부를 검증한다.
+     * 자기 자신을 제외하고 같은 경기 영상과 같은 선수 조합의
+     * 활성 기록이 있으면 수정할 수 없다.
      */
     public void validateDuplicateForUpdate(
             Integer recordId,
@@ -123,28 +137,41 @@ public class PlayerRecordValidator {
         }
     }
 
-    // 선수 본인 기록 접근 여부 검증
+    // 로그인한 선수가 자신의 기록에 접근하는지 검증한다.
     public void validatePlayerOwnRecord(
             Integer loginMemberId,
             PlayerRecordEntity playerRecord
     ) {
-        if (loginMemberId == null || playerRecord == null || playerRecord.getPlayer() == null) {
-            throw new CustomException(ErrorCode.PLAYER_RECORD_ACCESS_DENIED);
+        if (loginMemberId == null
+                || playerRecord == null
+                || playerRecord.getPlayer() == null) {
+            throw new CustomException(
+                    ErrorCode.PLAYER_RECORD_ACCESS_DENIED
+            );
         }
 
         Integer recordPlayerId = playerRecord.getPlayer().getId();
 
         if (!loginMemberId.equals(recordPlayerId)) {
-            throw new CustomException(ErrorCode.PLAYER_RECORD_ACCESS_DENIED);
+            throw new CustomException(
+                    ErrorCode.PLAYER_RECORD_ACCESS_DENIED
+            );
         }
     }
 
-    private void validateRequiredIds(Integer uploadId, Integer playerId) {
+    // 선수 기록 등록·수정에 필요한 필수 ID를 검증한다.
+    private void validateRequiredIds(
+            Integer uploadId,
+            Integer playerId
+    ) {
         if (uploadId == null || playerId == null) {
-            throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
+            throw new CustomException(
+                    ErrorCode.INVALID_PLAYER_RECORD_VALUE
+            );
         }
     }
 
+    // 선수 기록의 모든 수치가 DB 저장 범위에 포함되는지 검증한다.
     private void validateRecordValues(
             Integer minutesPlayed,
             Integer goals,
@@ -177,25 +204,21 @@ public class PlayerRecordValidator {
         validateTinyIntUnsigned(saves);
         validateTinyIntUnsigned(yellowCards);
         validateTinyIntUnsigned(redCards);
-
-        validateSuccessCount(shotsOnTarget, shots);
-        validateSuccessCount(successfulPasses, passes);
-        validateSuccessCount(successfulDribbles, dribbles);
     }
 
+    // MySQL TINYINT UNSIGNED 저장 범위인 0~255를 검증한다.
     private void validateTinyIntUnsigned(Integer value) {
         if (value == null) {
-            throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
+            throw new CustomException(
+                    ErrorCode.INVALID_PLAYER_RECORD_VALUE
+            );
         }
 
-        if (value < MIN_TINYINT_UNSIGNED_VALUE || value > MAX_TINYINT_UNSIGNED_VALUE) {
-            throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
-        }
-    }
-
-    private void validateSuccessCount(Integer successCount, Integer totalCount) {
-        if (successCount > totalCount) {
-            throw new CustomException(ErrorCode.INVALID_PLAYER_RECORD_VALUE);
+        if (value < MIN_TINYINT_UNSIGNED_VALUE
+                || value > MAX_TINYINT_UNSIGNED_VALUE) {
+            throw new CustomException(
+                    ErrorCode.INVALID_PLAYER_RECORD_VALUE
+            );
         }
     }
 }
