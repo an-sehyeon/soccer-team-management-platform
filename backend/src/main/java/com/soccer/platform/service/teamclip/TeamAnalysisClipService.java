@@ -32,12 +32,12 @@ import com.soccer.platform.repository.TeamVideoClipDrawingRepository;
 import com.soccer.platform.repository.TeamVideoClipRepository;
 import com.soccer.platform.security.CustomUserPrincipal;
 import com.soccer.platform.service.teamclipdrawing.TeamAnalysisClipDrawingValidator;
+import com.soccer.platform.service.videobookmark.VideoBookmarkService;
 
 import lombok.RequiredArgsConstructor;
 
 /*
  * 팀 분석 클립 Service
- *
  * 팀 전체가 볼 수 있는 분석 클립을 등록, 조회, 수정, 삭제한다.
  * 생성 시 실제 mp4 파일을 비동기로 생성
  */
@@ -53,6 +53,7 @@ public class TeamAnalysisClipService {
     private final TeamAnalysisClipDrawingValidator teamAnalysisClipDrawingValidator;
     private final TeamAnalysisClipLocalFileService teamAnalysisClipLocalFileService;
     private final TeamAnalysisClipGenerationAsyncService teamAnalysisClipGenerationAsyncService;
+    private final VideoBookmarkService videoBookmarkService;
 
     // 팀 분석 클립 등록
     @Transactional
@@ -230,140 +231,207 @@ public class TeamAnalysisClipService {
         return TeamAnalysisClipDetailResponseDTO.from(teamClip);
     }
 
-    // 팀 분석 클립 수정
+ // 팀 분석 클립 수정
     @Transactional
     public TeamAnalysisClipDetailResponseDTO updateTeamAnalysisClip(
-            CustomUserPrincipal principal,
-            Integer teamClipId,
-            UpdateTeamAnalysisClipRequestDTO request
+        CustomUserPrincipal principal,
+        Integer teamClipId,
+        UpdateTeamAnalysisClipRequestDTO request
     ) {
         teamAnalysisClipValidator.validateCanCreateOrUpdate(principal);
         teamAnalysisClipValidator.validateUpdateRequest(request);
 
-        TeamVideoClipEntity teamClip = teamAnalysisClipValidator.findActiveTeamClip(teamClipId);
-        teamAnalysisClipValidator.validateCanUpdateGenerationTarget(teamClip);
+        TeamVideoClipEntity teamClip =
+            teamAnalysisClipValidator.findActiveTeamClip(teamClipId);
 
-        GameVideoUploadEntity matchVideo = teamAnalysisClipValidator.findActiveMatchVideoWithDuration(
-                teamClip.getGameVideoUpload().getId()
-        );
+        teamAnalysisClipValidator
+            .validateCanUpdateGenerationTarget(teamClip);
+
+        GameVideoUploadEntity matchVideo =
+            teamAnalysisClipValidator
+                .findActiveMatchVideoWithDuration(
+                    teamClip.getGameVideoUpload().getId()
+                );
 
         teamAnalysisClipValidator.validateClipTimeRange(
-                request.getStartTimeSec(),
-                request.getEndTimeSec(),
-                matchVideo.getDurationSec()
+            request.getStartTimeSec(),
+            request.getEndTimeSec(),
+            matchVideo.getDurationSec()
         );
 
-        Path originalVideoFilePath = teamAnalysisClipLocalFileService
+        boolean clipTimeChanged = isTeamClipTimeChanged(
+            teamClip,
+            request.getStartTimeSec(),
+            request.getEndTimeSec()
+        );
+
+        Path originalVideoFilePath =
+            teamAnalysisClipLocalFileService
                 .resolveOriginalMatchVideoFilePath(matchVideo);
 
         String previousClipUrl = teamClip.getUrl();
 
+        if (clipTimeChanged) {
+            videoBookmarkService
+                .softDeleteBookmarksByTeamClipId(teamClipId);
+        }
+
         teamClip.setClipType(request.getClipType());
         teamClip.setTitle(request.getTitle().trim());
-        teamClip.setComment(teamAnalysisClipValidator.trimNullableText(request.getComment()));
+        teamClip.setComment(
+            teamAnalysisClipValidator.trimNullableText(
+                request.getComment()
+            )
+        );
         teamClip.setStartTimeSec(request.getStartTimeSec());
         teamClip.setEndTimeSec(request.getEndTimeSec());
         teamClip.setUrl(null);
         teamClip.setStatus(VideoUploadStatusEnum.PROCESSING);
 
-        TeamAnalysisClipGenerationCommand generationCommand = createGenerationCommand(
+        TeamAnalysisClipGenerationCommand generationCommand =
+            createGenerationCommand(
                 teamClip,
                 originalVideoFilePath,
                 previousClipUrl
-        );
+            );
 
-        requestTeamAnalysisClipFileGenerationAfterCommit(generationCommand);
+        requestTeamAnalysisClipFileGenerationAfterCommit(
+            generationCommand
+        );
 
         return TeamAnalysisClipDetailResponseDTO.from(teamClip);
     }
     
-    // 팀 분석 클립과 드로잉 통합 수정
+ // 팀 분석 클립과 드로잉 통합 수정
     @Transactional
-    public UpdateTeamAnalysisClipWithDrawingsResponseDTO updateTeamAnalysisClipWithDrawings(
+    public UpdateTeamAnalysisClipWithDrawingsResponseDTO
+        updateTeamAnalysisClipWithDrawings(
             CustomUserPrincipal principal,
             Integer teamClipId,
             UpdateTeamAnalysisClipWithDrawingsRequestDTO request
-    ) {
+        ) {
+
         teamAnalysisClipValidator.validateCanCreateOrUpdate(principal);
-        teamAnalysisClipValidator.validateUpdateWithDrawingsRequest(request);
+        teamAnalysisClipValidator
+            .validateUpdateWithDrawingsRequest(request);
 
-        TeamVideoClipEntity teamClip = teamAnalysisClipValidator.findActiveTeamClip(teamClipId);
-        teamAnalysisClipValidator.validateCanUpdateGenerationTarget(teamClip);
+        TeamVideoClipEntity teamClip =
+            teamAnalysisClipValidator.findActiveTeamClip(teamClipId);
 
-        GameVideoUploadEntity matchVideo = teamAnalysisClipValidator.findActiveMatchVideoWithDuration(
-                teamClip.getGameVideoUpload().getId()
-        );
+        teamAnalysisClipValidator
+            .validateCanUpdateGenerationTarget(teamClip);
+
+        GameVideoUploadEntity matchVideo =
+            teamAnalysisClipValidator
+                .findActiveMatchVideoWithDuration(
+                    teamClip.getGameVideoUpload().getId()
+                );
 
         teamAnalysisClipValidator.validateClipTimeRange(
-                request.getStartTimeSec(),
-                request.getEndTimeSec(),
-                matchVideo.getDurationSec()
+            request.getStartTimeSec(),
+            request.getEndTimeSec(),
+            matchVideo.getDurationSec()
         );
 
-        boolean fileGenerationRequired = isTeamClipFileGenerationRequired(
-                teamClip,
-                request
+        boolean clipTimeChanged = isTeamClipTimeChanged(
+            teamClip,
+            request.getStartTimeSec(),
+            request.getEndTimeSec()
         );
+
+        boolean fileGenerationRequired =
+            isTeamClipFileGenerationRequired(teamClip, request);
 
         Path originalVideoFilePath = null;
         String previousClipUrl = teamClip.getUrl();
 
         if (fileGenerationRequired) {
-            originalVideoFilePath = teamAnalysisClipLocalFileService
+            originalVideoFilePath =
+                teamAnalysisClipLocalFileService
                     .resolveOriginalMatchVideoFilePath(matchVideo);
+        }
+
+        if (clipTimeChanged) {
+            videoBookmarkService
+                .softDeleteBookmarksByTeamClipId(teamClipId);
         }
 
         teamClip.setClipType(request.getClipType());
         teamClip.setTitle(request.getTitle().trim());
-        teamClip.setComment(teamAnalysisClipValidator.trimNullableText(request.getComment()));
+        teamClip.setComment(
+            teamAnalysisClipValidator.trimNullableText(
+                request.getComment()
+            )
+        );
         teamClip.setStartTimeSec(request.getStartTimeSec());
         teamClip.setEndTimeSec(request.getEndTimeSec());
 
         softDeleteExistingDrawings(teamClip);
 
-        MemberEntity editor = teamAnalysisClipValidator.findLoginMember(principal);
+        MemberEntity editor =
+            teamAnalysisClipValidator.findLoginMember(principal);
 
         saveDrawingsIfExists(
-                request.getDrawings(),
-                teamClip,
-                editor
+            request.getDrawings(),
+            teamClip,
+            editor
         );
 
         if (fileGenerationRequired) {
             teamClip.setUrl(null);
             teamClip.setStatus(VideoUploadStatusEnum.PROCESSING);
 
-            TeamAnalysisClipGenerationCommand generationCommand = createGenerationCommand(
+            TeamAnalysisClipGenerationCommand generationCommand =
+                createGenerationCommand(
                     teamClip,
                     originalVideoFilePath,
                     previousClipUrl
-            );
+                );
 
-            requestTeamAnalysisClipFileGenerationAfterCommit(generationCommand);
+            requestTeamAnalysisClipFileGenerationAfterCommit(
+                generationCommand
+            );
+        }
+
+        String responseMessage;
+
+        if (clipTimeChanged) {
+            responseMessage =
+                "팀 분석 클립 수정 후 파일 재생성이 요청되었습니다. "
+                    + "기존 클립이 수정되어 해당 클립에서 생성한 "
+                    + "북마크가 모두 삭제되었습니다.";
+        } else if (fileGenerationRequired) {
+            responseMessage =
+                "팀 분석 클립 수정 후 파일 재생성이 요청되었습니다.";
+        } else {
+            responseMessage =
+                "팀 분석 클립과 드로잉이 수정되었습니다.";
         }
 
         return new UpdateTeamAnalysisClipWithDrawingsResponseDTO(
-                teamClip.getId(),
-                teamClip.getStatus(),
-                fileGenerationRequired,
-                fileGenerationRequired
-                        ? "팀 분석 클립 수정 후 파일 재생성이 요청되었습니다."
-                        : "팀 분석 클립과 드로잉이 수정되었습니다."
+            teamClip.getId(),
+            teamClip.getStatus(),
+            fileGenerationRequired,
+            responseMessage
         );
     }
 
-    // 팀 분석 클립 삭제
-    @Transactional
-    public void deleteTeamAnalysisClip(
-            CustomUserPrincipal principal,
-            Integer teamClipId
-    ) {
-        teamAnalysisClipValidator.validateCanDelete(principal);
-
-        TeamVideoClipEntity teamClip = teamAnalysisClipValidator.findActiveTeamClip(teamClipId);
-
-        teamClip.setIsDeleted(true);
-    }
+	 // 팀 분석 클립 삭제
+	    @Transactional
+	    public void deleteTeamAnalysisClip(
+	        CustomUserPrincipal principal,
+	        Integer teamClipId
+	    ) {
+	        teamAnalysisClipValidator.validateCanDelete(principal);
+	
+	        TeamVideoClipEntity teamClip =
+	            teamAnalysisClipValidator.findActiveTeamClip(teamClipId);
+	
+	        teamClip.setIsDeleted(true);
+	
+	        videoBookmarkService
+	            .softDeleteBookmarksByTeamClipId(teamClipId);
+	    }
 
     // 생성 중 상태의 팀 분석 클립 Entity 생성
     private TeamVideoClipEntity createProcessingTeamVideoClip(
@@ -499,6 +567,22 @@ public class TeamAnalysisClipService {
                     }
                 }
         );
+    }
+    
+    /*
+     * 팀 분석 클립의 시작 또는 종료 시간이 변경됐는지 확인
+     * 제목, 코멘트, 클립 유형, 드로잉만 변경된 경우에는
+     * 연결 북마크를 유지
+     */
+    private boolean isTeamClipTimeChanged(
+        TeamVideoClipEntity teamClip,
+        Integer requestedStartTimeSec,
+        Integer requestedEndTimeSec
+    ) {
+        return !teamClip.getStartTimeSec()
+            .equals(requestedStartTimeSec)
+            || !teamClip.getEndTimeSec()
+                .equals(requestedEndTimeSec);
     }
     
     // 팀 분석 클립 파일 재생성 필요 여부 판단

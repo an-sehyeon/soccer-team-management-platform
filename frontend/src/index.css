@@ -77,20 +77,24 @@ h1 {
   font-size: 56px;
   letter-spacing: -1.68px;
   margin: 32px 0;
+
   @media (max-width: 1024px) {
     font-size: 36px;
     margin: 20px 0;
   }
 }
+
 h2 {
   font-size: 24px;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
+
   @media (max-width: 1024px) {
     font-size: 20px;
   }
 }
+
 p {
   margin: 0;
 }
@@ -201,6 +205,10 @@ code {
   color: #d32f2f;
 }
 
+.success-message {
+  color: #1b7f3a;
+}
+
 .video-canvas-wrap {
   position: relative;
   width: 100%;
@@ -229,4 +237,217 @@ code {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* 북마크 사이드바 뒤의 화면을 어둡게 표시 */
+.video-bookmark-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.42);
+  cursor: default;
+}
+
+/* 화면 오른쪽에 고정되는 북마크 사이드바 */
+.video-bookmark-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1001;
+  width: min(420px, 92vw);
+  height: 100dvh;
+  padding: 20px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.18);
+}
+
+.video-bookmark-sidebar__header {
+  position: sticky;
+  top: -20px;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin: -20px -20px 20px;
+  padding: 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.video-bookmark-sidebar__header h2 {
+  margin-bottom: 4px;
+}
+
+.video-bookmark-sidebar__header p {
+  font-size: 14px;
+}
+
+.video-bookmark-sidebar__create {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.video-bookmark-sidebar__create h3,
+.video-bookmark-sidebar__list h3 {
+  margin: 0 0 12px;
+  color: var(--text-h);
+}
+
+.video-bookmark-sidebar__create form,
+.video-bookmark-item form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.video-bookmark-sidebar label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.video-bookmark-sidebar input,
+.video-bookmark-sidebar textarea,
+.video-bookmark-sidebar select {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.video-bookmark-sidebar textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.video-bookmark-sidebar button {
+  padding: 9px 12px;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.video-bookmark-sidebar button:hover:not(:disabled) {
+  border-color: var(--accent-border);
+}
+
+.video-bookmark-sidebar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.video-bookmark-sidebar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.video-bookmark-sidebar__list {
+  display: grid;
+  gap: 12px;
+  padding-top: 20px;
+}
+
+.video-bookmark-item {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.video-bookmark-item--selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.video-bookmark-item__select {
+  display: grid;
+  width: 100%;
+  gap: 5px;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.video-bookmark-item__select:hover:not(:disabled) {
+  border-color: transparent;
+}
+
+.video-bookmark-item__select strong {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.video-bookmark-item__select span {
+  color: var(--text-h);
+  font-weight: 700;
+}
+
+.video-bookmark-item__select small {
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.video-bookmark-item__created-at {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.video-bookmark-item__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.video-bookmark-selection {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid var(--accent-border);
+  border-radius: 10px;
+  background: var(--accent-bg);
+}
+
+.video-bookmark-selection h3 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+@media (max-width: 640px) {
+  .video-bookmark-sidebar {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .video-bookmark-backdrop {
+    display: none;
+  }
+
+  .detail-list {
+    grid-template-columns: 1fr;
+  }
 }
