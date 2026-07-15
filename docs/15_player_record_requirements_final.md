@@ -1,381 +1,88 @@
-# 15. 선수 기록 관리 기능 최종 요구사항
+# 15. 경기 영상 기반 선수 기록 등록 및 클립 연결 최종 요구사항
 
 ## 1. 문서 목적
 
-이 문서는 축구팀 영상분석 플랫폼의 선수 기록 관리 기능에 대한 최신 최종 정책을 정의한다.
+이 문서는 축구팀 영상분석 플랫폼의 경기 영상 기반 선수 기록 등록과 분석 클립 연결 기능에 대한 최종 요구사항을 정의한다.
 
-선수 기록 기능은 다음 두 데이터를 분리해서 관리한다.
+이번 개편의 목적은 선수 기록 쓰기 기능을 경기 영상 화면으로 통합하고, 분석 클립과 선수 기록 이벤트를 안전하게 연결하는 것이다.
 
-```text
-player_record
-→ 한 경기에서 특정 선수의 최종 요약 기록
+이 문서는 다음 기능의 최종 기준이다.
 
-player_record_event
-→ 분석 클립과 연결된 개별 기록 근거
-
-player_record_event_clip
-→ 선수 기록 이벤트와 팀 분석 클립 또는 선수 개인 분석 클립의 연결 정보
-```
-
-이 문서는 선수 기록 백엔드와 프론트엔드 구현 시 최우선으로 참고한다.
+* 경기 영상 기준 선수 요약 기록 등록
+* 기존 선수 요약 기록 갱신
+* 팀 분석 클립과 선수 기록 이벤트 연결
+* 선수 개인 분석 클립과 선수 기록 이벤트 연결
+* 선수 기록 이벤트 조회
+* 선수 본인 기록 이벤트 조회
+* 선수 기록 요약 수치 자동 반영
+* 동일 클립·동일 이벤트 유형 중복 방지
 
 ---
 
-## 2. 최종 결론
+## 2. 사용자 역할
 
-최종 정책은 다음과 같다.
+### COACH
 
-- `PlayerRecordPage`는 검색, 목록 조회, 상세 조회 전용 화면으로 사용한다.
-- 선수 기록 등록과 갱신은 `MatchVideoPage`에서 경기 영상을 기준으로 진행한다.
-- 화면 버튼명은 `선수 기록 이벤트 등록`이 아니라 `선수 기록 등록`을 사용한다.
-- 선수 기록 등록 방식은 `클립 없이 등록`, `팀 분석 클립 연결`, `선수 개인 분석 클립 연결` 세 가지다.
-- `클립 없이 등록`은 `player_record` 요약 기록만 생성하거나 갱신한다.
-- `클립 없이 등록`에서는 `player_record_event`, `player_record_event_clip`을 생성하지 않는다.
-- 같은 경기와 같은 선수의 활성 `player_record`가 있으면 기존 값을 조회해 갱신한다.
-- 기존 활성 `player_record`가 없으면 모든 기록 값을 0으로 시작해 새로 생성한다.
-- 클립 없이 등록 화면은 모든 요약 기록을 한 번에 표시한다.
-- 각 기록은 숫자 직접 입력이 아니라 `-`, 현재 값, `+` 버튼으로 1씩 조정한다.
-- 여러 기록 항목을 한 번에 조정하고 최종 등록 버튼으로 한 번에 저장한다.
-- `-` 버튼은 최소 0까지만 감소시킨다.
-- 유효 슈팅과 슈팅, 성공 패스와 패스, 성공 드리블과 드리블 사이의 추가 정합성 검증은 이번 단계에서는 적용하지 않는다.
-- DB 컬럼 범위에 맞춰 모든 수치는 백엔드에서 0 이상 255 이하를 검증한다.
-- 클립 연결 등록은 한 요청에서 클립 하나와 이벤트 유형 하나만 등록한다.
-- 같은 클립에 다른 이벤트 유형을 각각 별도 요청으로 등록하는 것은 허용한다.
-- 같은 클립에 같은 이벤트 유형을 다시 등록하는 것은 금지한다.
-- 중복 요청 시 저장하지 않고 해당 클립에 해당 유형이 이미 연결되어 있다는 사용자 메시지를 반환한다.
-- 클립 연결 등록 시 선택한 이벤트 유형에 대응하는 `player_record` 요약 값이 1 증가한다.
-- 연결 등록 시 `value`는 백엔드에서 항상 1로 결정한다.
-- 사용자는 `eventStartTimeSec`, `eventEndTimeSec`, `value`를 입력하지 않는다.
-- 백엔드는 선택한 클립의 원본 경기 영상 구간을 조회해 이벤트 시작·종료 시간을 자동 저장한다.
-- `player_record_event.event_start_time_sec`, `event_end_time_sec`, `value` 컬럼은 DB에 유지한다.
-- 이벤트 시간과 값은 등록 당시 클립 정보의 스냅샷과 이력 확인용 데이터다.
-- 클립 시간이 나중에 수정되어도 기존 이벤트 시간 스냅샷은 변경하지 않는다.
+* 선수 요약 기록 등록
+* 선수 요약 기록 갱신
+* 팀 분석 클립 연결 이벤트 등록
+* 선수 개인 분석 클립 연결 이벤트 등록
+* 전체 선수 기록 조회
+* 전체 선수 기록 이벤트 조회
 
----
+### ANALYST
 
-## 3. 기능 목적
+* 선수 요약 기록 등록
+* 선수 요약 기록 갱신
+* 팀 분석 클립 연결 이벤트 등록
+* 선수 개인 분석 클립 연결 이벤트 등록
+* 전체 선수 기록 조회
+* 전체 선수 기록 이벤트 조회
 
-선수 기록 기능의 목적은 다음과 같다.
+### PLAYER
 
-- 한 경기에서 특정 선수의 전체 경기 기록을 관리한다.
-- 경기 영상을 보면서 지도자와 분석관이 기록을 입력할 수 있게 한다.
-- 분석 클립을 선수 기록의 영상 근거로 연결한다.
-- 클립 연결 기록을 선수 요약 기록에 자동 반영한다.
-- 선수는 본인의 경기별 기록과 연결 근거를 조회할 수 있게 한다.
-- 추후 시즌 누적 기록, 선수 비교, 데이터 시각화, AI 이벤트 분석으로 확장할 수 있게 한다.
+* 본인 선수 기록 조회
+* 본인 선수 기록 이벤트 목록 조회
+* 본인 선수 기록 이벤트 상세 조회
+* 선수 기록 등록 및 갱신 불가
+* 클립 연결 이벤트 등록 불가
 
----
-
-## 4. 사용자 역할
-
-### 4.1 지도자 `COACH`
-
-가능한 기능은 다음과 같다.
-
-- 경기 영상 기준 선수 기록 등록
-- 경기 영상 기준 기존 선수 기록 갱신
-- 팀 분석 클립 연결 기록 등록
-- 선수 개인 분석 클립 연결 기록 등록
-- 전체 선수 기록 검색
-- 전체 선수 기록 목록 조회
-- 전체 선수 기록 상세 조회
-- 선수 기록 이벤트 목록 조회
-- 선수 기록 이벤트 상세 조회
-
-`PlayerRecordPage`에서는 조회 기능만 제공한다.
-
-### 4.2 분석관 `ANALYST`
-
-가능한 기능은 다음과 같다.
-
-- 경기 영상 기준 선수 기록 등록
-- 경기 영상 기준 기존 선수 기록 갱신
-- 팀 분석 클립 연결 기록 등록
-- 선수 개인 분석 클립 연결 기록 등록
-- 전체 선수 기록 검색
-- 전체 선수 기록 목록 조회
-- 전체 선수 기록 상세 조회
-- 선수 기록 이벤트 목록 조회
-- 선수 기록 이벤트 상세 조회
-
-`PlayerRecordPage`에서는 조회 기능만 제공한다.
-
-### 4.3 선수 `PLAYER`
-
-가능한 기능은 다음과 같다.
-
-- 본인 선수 기록 목록 조회
-- 본인 선수 기록 상세 조회
-- 본인 선수 기록 이벤트 목록 조회
-- 본인 선수 기록 이벤트 상세 조회
-- 본인에게 공개된 연결 클립 조회
-
-불가능한 기능은 다음과 같다.
-
-- 다른 선수 기록 조회
-- 선수 기록 등록
-- 선수 기록 갱신
-- 선수 기록 이벤트 등록
-- 선수 기록 이벤트 관리
-
-선수 조회 API는 요청값의 `playerId`를 신뢰하지 않고 로그인한 선수의 `memberId`를 기준으로 접근 범위를 제한한다.
-
----
-
-## 5. 권한 정책
-
-| 기능 | COACH | ANALYST | PLAYER |
-|---|---:|---:|---:|
-| 경기 영상 기준 선수 기록 등록·갱신 | 가능 | 가능 | 불가 |
-| 클립 연결 기록 등록 | 가능 | 가능 | 불가 |
-| 관리용 선수 기록 검색·목록·상세 | 가능 | 가능 | 불가 |
-| 관리용 이벤트 목록·상세 | 가능 | 가능 | 불가 |
-| 본인 선수 기록 조회 | 가능 | 가능 | 본인만 가능 |
-| 본인 이벤트 조회 | 가능 | 가능 | 본인만 가능 |
-
-권한 검증은 반드시 백엔드에서 처리한다.
+권한은 `memberRole`을 기준으로 검증한다.
 
 `isAdmin = true`만으로 선수 기록 관리 권한을 부여하지 않는다.
 
----
-
-## 6. 데이터 역할
-
-### 6.1 `player_record`
-
-`player_record`는 경기별 선수 최종 요약 기록이다.
-
-활성 기록의 논리적 유일 기준은 다음과 같다.
-
-```text
-upload_id + player_id + is_deleted = false
-```
-
-같은 경기와 같은 선수의 활성 기록은 하나만 유지한다.
-
-주요 필드는 다음과 같다.
-
-```text
-minutes_played
-goals
-assists
-shots
-shots_on_target
-passes
-successful_passes
-dribbles
-successful_dribbles
-tackles
-interceptions
-clearances
-saves
-yellow_cards
-red_cards
-memo
-```
-
-### 6.2 `player_record_event`
-
-`player_record_event`는 분석 클립과 연결된 개별 기록 근거다.
-
-이번 최종 정책에서는 신규 이벤트는 반드시 팀 분석 클립 또는 선수 개인 분석 클립과 연결해서 생성한다.
-
-주요 필드는 다음과 같다.
-
-```text
-player_record_id
-event_type
-event_start_time_sec
-event_end_time_sec
-value
-memo
-created_by
-```
-
-`event_start_time_sec`, `event_end_time_sec`, `value`는 사용자가 입력하지 않는다.
-
-백엔드가 다음 방식으로 자동 결정한다.
-
-```text
-event_start_time_sec = 선택한 클립의 원본 경기 영상 시작 시간
-event_end_time_sec = 선택한 클립의 원본 경기 영상 종료 시간
-value = 1
-```
-
-### 6.3 `player_record_event_clip`
-
-`player_record_event_clip`은 이벤트와 분석 클립의 연결 정보를 저장한다.
-
-지원 소스는 다음과 같다.
-
-```text
-TEAM_ANALYSIS
-PLAYER_ANALYSIS
-```
-
-유효한 연결 조합은 다음과 같다.
-
-```text
-TEAM_ANALYSIS
-→ team_clip_id만 존재
-→ player_clip_id는 null
-
-PLAYER_ANALYSIS
-→ player_clip_id만 존재
-→ team_clip_id는 null
-```
-
-두 클립 ID가 동시에 존재하거나 둘 다 없는 연결 데이터는 허용하지 않는다.
+프론트에서 버튼을 숨기더라도 권한 검증은 반드시 백엔드에서 처리한다.
 
 ---
 
-## 7. 이벤트 유형
+## 3. 화면 책임
 
-지원 이벤트 유형은 다음과 같다.
+### PlayerRecordPage
 
-```text
-GOAL
-ASSIST
-SHOT
-SHOT_ON_TARGET
-PASS
-SUCCESSFUL_PASS
-DRIBBLE
-SUCCESSFUL_DRIBBLE
-TACKLE
-INTERCEPTION
-CLEARANCE
-SAVE
-YELLOW_CARD
-RED_CARD
-ETC
-```
+`PlayerRecordPage`는 조회 전용으로 변경한다.
 
-`ETC`는 개별 이벤트 메모와 근거 보존에는 사용할 수 있지만 대응하는 요약 기록 컬럼은 증가시키지 않는다.
+유지 기능:
 
----
+* 검색
+* 필터
+* 목록 조회
+* 상세 조회
+* 연결 이벤트 목록 조회
+* 이벤트 상세 조회
+* 연결 클립 정보 조회
 
-## 8. 요약 기록 반영 정책
+제거 기능:
 
-클립 연결 이벤트 등록 시 `value = 1`을 적용한다.
+* 선수 기록 등록 UI
+* 선수 기록 수정 UI
+* 선수 기록 삭제 UI
+* 독립 이벤트 등록 UI
+* 독립 이벤트 수정 UI
+* 독립 이벤트 삭제 UI
 
-이벤트 유형별 요약 기록 반영은 다음과 같다.
+### MatchVideoPage
 
-| 이벤트 유형 | 증가하는 요약 기록 |
-|---|---|
-| `GOAL` | `goals + 1` |
-| `ASSIST` | `assists + 1` |
-| `SHOT` | `shots + 1` |
-| `SHOT_ON_TARGET` | `shots + 1`, `shots_on_target + 1` |
-| `PASS` | `passes + 1` |
-| `SUCCESSFUL_PASS` | `passes + 1`, `successful_passes + 1` |
-| `DRIBBLE` | `dribbles + 1` |
-| `SUCCESSFUL_DRIBBLE` | `dribbles + 1`, `successful_dribbles + 1` |
-| `TACKLE` | `tackles + 1` |
-| `INTERCEPTION` | `interceptions + 1` |
-| `CLEARANCE` | `clearances + 1` |
-| `SAVE` | `saves + 1` |
-| `YELLOW_CARD` | `yellow_cards + 1` |
-| `RED_CARD` | `red_cards + 1` |
-| `ETC` | 요약 기록 변경 없음 |
-
-예시는 다음과 같다.
-
-```text
-기존 수치
-슈팅 3
-태클 2
-패스 3
-
-팀 분석 클립 연결
-이벤트 유형 SHOT 등록
-
-최종 수치
-슈팅 4
-태클 2
-패스 3
-```
-
----
-
-## 9. 중복 연결 정책
-
-한 번의 요청에서는 다음 조합만 등록할 수 있다.
-
-```text
-클립 1개 + 이벤트 유형 1개
-```
-
-같은 클립에 다른 이벤트 유형을 각각 별도로 등록하는 것은 허용한다.
-
-```text
-클립 10 + SHOT
-클립 10 + PASS
-클립 10 + TACKLE
-→ 허용
-```
-
-같은 클립에 같은 이벤트 유형을 다시 등록하는 것은 금지한다.
-
-```text
-클립 10 + SHOT
-클립 10 + SHOT
-→ 두 번째 등록 차단
-```
-
-중복 판단 기준은 다음과 같다.
-
-```text
-clip_source_type
-+ 실제 clip_id
-+ event_type
-+ event is_deleted = false
-+ event_clip is_deleted = false
-```
-
-팀 분석 클립은 여러 선수가 등장할 수 있더라도 같은 클립과 같은 이벤트 유형의 활성 연결은 하나만 허용한다.
-
-중복 요청 시 저장하지 않고 다음 취지의 메시지를 반환한다.
-
-```text
-선택한 클립에는 해당 선수 기록 유형이 이미 연결되어 있습니다.
-```
-
-HTTP 상태는 충돌을 의미하는 `409 Conflict` 사용을 권장한다.
-
-정확한 `ErrorCode` 상수명은 구현 시 현재 프로젝트의 네이밍 규칙을 확인해 확정한다.
-
-동시 요청으로 중복 저장되지 않도록 트랜잭션 범위에서 중복 검증을 수행한다.
-
----
-
-## 10. 화면 흐름
-
-### 10.1 `PlayerRecordPage`
-
-`PlayerRecordPage`는 조회 전용 화면이다.
-
-유지 기능은 다음과 같다.
-
-- 검색 조건 입력
-- 선수 기록 목록 조회
-- 선수 기록 상세 조회
-- 연결된 이벤트 목록 조회
-- 이벤트 상세 조회
-- 연결된 클립 정보 조회
-
-제거 기능은 다음과 같다.
-
-- 선수 기록 등록 폼
-- 선수 기록 수정 폼
-- 선수 기록 삭제 버튼
-- 선수 기록 이벤트 등록 폼
-- 선수 기록 이벤트 수정 폼
-- 선수 기록 이벤트 삭제 버튼
-
-### 10.2 `MatchVideoPage`
-
-`MatchVideoPage`는 선수 기록 등록 허브다.
+선수 기록 쓰기 기능은 `MatchVideoPage`에서 제공한다.
 
 버튼명은 다음을 사용한다.
 
@@ -383,7 +90,7 @@ HTTP 상태는 충돌을 의미하는 `409 Conflict` 사용을 권장한다.
 선수 기록 등록
 ```
 
-버튼 클릭 후 등록 방식을 선택한다.
+등록 방식은 다음 세 가지다.
 
 ```text
 클립 없이 등록
@@ -393,337 +100,21 @@ HTTP 상태는 충돌을 의미하는 `409 Conflict` 사용을 권장한다.
 
 ---
 
-## 11. 클립 없이 등록 화면
-
-### 11.1 기본 흐름
-
-1. 지도자 또는 분석관이 경기 영상을 선택한다.
-2. `선수 기록 등록` 버튼을 클릭한다.
-3. `클립 없이 등록`을 선택한다.
-4. 대상 선수를 선택한다.
-5. 현재 경기와 선택 선수 기준 활성 `player_record`를 조회한다.
-6. 기존 기록이 있으면 기존 값을 표시한다.
-7. 기존 기록이 없으면 모든 수치를 0으로 표시한다.
-8. 각 항목의 `-`, `+` 버튼으로 1씩 조정한다.
-9. 여러 항목을 한 번에 조정한다.
-10. 경기 전체 메모를 입력한다.
-11. 최종 저장 버튼을 클릭한다.
-12. 기존 기록이 있으면 갱신하고, 없으면 생성한다.
-
-### 11.2 표시 항목
-
-```text
-출전 시간
-득점
-도움
-슈팅
-유효 슈팅
-패스
-성공 패스
-드리블
-성공 드리블
-태클
-인터셉트
-클리어링
-세이브
-경고
-퇴장
-경기 전체 메모
-```
-
-### 11.3 버튼 정책
-
-각 수치는 다음 UI를 사용한다.
-
-```text
-[-] 0 [+]
-```
-
-- `+` 클릭 시 1 증가
-- `-` 클릭 시 1 감소
-- 최소값은 0
-- 한 번에 여러 항목 변경 가능
-- 최종 저장 버튼 클릭 전에는 서버에 저장하지 않음
-
-### 11.4 저장 정책
-
-기존 활성 기록이 없는 경우 선수 기록 생성 API를 사용한다.
-
-기존 활성 기록이 있는 경우 선수 기록 수정 API를 사용한다.
-
-프론트는 조회 결과의 `recordId` 존재 여부로 생성과 수정을 구분한다.
-
-한 번의 저장 요청에는 현재 화면의 전체 최종 수치를 전송한다.
-
----
-
-## 12. 팀 분석 클립 연결 등록 화면
-
-### 12.1 기본 흐름
-
-1. `팀 분석 클립 연결`을 선택한다.
-2. 현재 경기의 `READY` 팀 분석 클립 목록을 조회한다.
-3. 연결할 팀 분석 클립 하나를 선택한다.
-4. 기록 대상 선수 하나를 선택한다.
-5. 이벤트 유형 하나를 선택한다.
-6. 선택 입력으로 이벤트 메모를 작성한다.
-7. 최종 등록 버튼을 클릭한다.
-8. 백엔드가 클립의 경기 영상과 시작·종료 시간을 검증한다.
-9. 같은 클립과 같은 이벤트 유형의 활성 연결이 있는지 검증한다.
-10. `player_record`가 없으면 0으로 자동 생성한다.
-11. 이벤트와 클립 연결을 생성한다.
-12. 선택 이벤트 유형에 대응하는 요약 기록을 1 증가시킨다.
-
-### 12.2 사용자에게 표시하지 않는 값
-
-```text
-eventStartTimeSec
-eventEndTimeSec
-value
-```
-
-### 12.3 자동 저장 값
-
-```text
-eventStartTimeSec = team_video_clip.start_time_sec
-eventEndTimeSec = team_video_clip.end_time_sec
-value = 1
-```
-
----
-
-## 13. 선수 개인 분석 클립 연결 등록 화면
-
-### 13.1 기본 흐름
-
-1. `선수 개인 분석 클립 연결`을 선택한다.
-2. 현재 경기의 `READY` 선수 개인 분석 클립 목록을 조회한다.
-3. 연결할 선수 개인 분석 클립 하나를 선택한다.
-4. 클립의 대상 선수를 기록 대상 선수로 사용한다.
-5. 화면에는 대상 선수를 읽기 전용으로 표시한다.
-6. 이벤트 유형 하나를 선택한다.
-7. 선택 입력으로 이벤트 메모를 작성한다.
-8. 최종 등록 버튼을 클릭한다.
-9. 백엔드가 클립의 경기 영상, 대상 선수, 시작·종료 시간을 검증한다.
-10. 같은 클립과 같은 이벤트 유형의 활성 연결이 있는지 검증한다.
-11. `player_record`가 없으면 0으로 자동 생성한다.
-12. 이벤트와 클립 연결을 생성한다.
-13. 선택 이벤트 유형에 대응하는 요약 기록을 1 증가시킨다.
-
-### 13.2 자동 저장 값
-
-```text
-playerId = player_video_clip.player_id
-eventStartTimeSec = player_video_clip.start_time_sec
-eventEndTimeSec = player_video_clip.end_time_sec
-value = 1
-```
-
----
-
-## 14. API 흐름
-
-현재 기존 API 주소 체계를 우선 유지한다.
-
-### 14.1 관리용 선수 기록 조회
-
-```http
-GET /api/management/player-records?page=0&size=20&uploadId={uploadId}&playerId={playerId}
-GET /api/management/player-records/{recordId}
-```
-
-클립 없이 등록 화면은 `uploadId`, `playerId` 조건으로 기존 기록을 조회한다.
-
-### 14.2 클립 없이 선수 기록 생성
-
-```http
-POST /api/management/player-records
-```
-
-기존 활성 기록이 없을 때 사용한다.
-
-### 14.3 클립 없이 선수 기록 갱신
-
-```http
-PATCH /api/management/player-records/{recordId}
-```
-
-기존 활성 기록이 있을 때 사용한다.
-
-### 14.4 클립 연결 기록 등록
-
-기존 연결 API 주소를 유지하되 요청 DTO를 개편한다.
-
-```http
-POST /api/management/player-record-events/with-clip-link
-```
-
-요청에서 제거할 필드는 다음과 같다.
-
-```text
-eventStartTimeSec
-eventEndTimeSec
-value
-```
-
-팀 분석 클립 연결 요청 예시는 다음과 같다.
-
-```json
-{
-  "uploadId": 1,
-  "playerId": 5,
-  "eventType": "SHOT",
-  "eventMemo": "페널티 박스 우측 슈팅",
-  "clipSourceType": "TEAM_ANALYSIS",
-  "teamClipId": 10,
-  "playerClipId": null
-}
-```
-
-선수 개인 분석 클립 연결 요청 예시는 다음과 같다.
-
-```json
-{
-  "uploadId": 1,
-  "playerId": 5,
-  "eventType": "PASS",
-  "eventMemo": "전진 패스 성공 장면",
-  "clipSourceType": "PLAYER_ANALYSIS",
-  "teamClipId": null,
-  "playerClipId": 20
-}
-```
-
-선수 개인 분석 클립 방식의 `playerId`는 요청값만 신뢰하지 않고 클립 대상 선수와 반드시 일치하는지 백엔드에서 검증한다.
-
-### 14.5 선수 본인 조회
-
-```http
-GET /api/player/me/player-records
-GET /api/player/me/player-records/{recordId}
-GET /api/player/me/player-records/{recordId}/events
-GET /api/player/me/player-record-events/{eventId}
-```
-
----
-
-## 15. 백엔드 처리 흐름
-
-### 15.1 클립 없이 기록 생성·갱신
-
-1. JWT 인증 정보를 확인한다.
-2. `COACH` 또는 `ANALYST`인지 검증한다.
-3. 경기 영상이 존재하고 삭제되지 않았는지 확인한다.
-4. 대상 회원이 존재하고 `PLAYER` 역할인지 확인한다.
-5. 모든 수치가 0 이상 255 이하인지 확인한다.
-6. 같은 경기와 선수의 활성 기록을 조회한다.
-7. 활성 기록이 없으면 생성한다.
-8. 활성 기록이 있으면 기존 데이터를 갱신한다.
-9. 최초 생성 시 `recorder_id`를 저장한다.
-10. 갱신 시 `recorder_id`는 유지하고 `last_modifier_id`를 갱신한다.
-
-### 15.2 클립 연결 이벤트 등록
-
-1. JWT 인증 정보를 확인한다.
-2. `COACH` 또는 `ANALYST`인지 검증한다.
-3. `clipSourceType`과 클립 ID 조합을 검증한다.
-4. 선택한 클립이 존재하고 삭제되지 않았는지 확인한다.
-5. 선택한 클립이 `READY` 상태인지 확인한다.
-6. 요청 경기와 클립 원본 경기 영상이 일치하는지 확인한다.
-7. 선수 개인 분석 클립이면 요청 선수와 클립 대상 선수가 일치하는지 확인한다.
-8. 동일 클립과 동일 이벤트 유형의 활성 연결이 있는지 확인한다.
-9. 중복이면 저장하지 않고 충돌 응답을 반환한다.
-10. 같은 경기와 선수의 활성 `player_record`를 조회한다.
-11. 없으면 모든 요약 값을 0으로 생성한다.
-12. 클립의 시작·종료 시간을 조회한다.
-13. `value = 1`로 결정한다.
-14. `player_record_event`를 저장한다.
-15. `player_record_event_clip`을 저장한다.
-16. 이벤트 유형에 대응하는 요약 기록을 1 증가시킨다.
-17. 전체 작업을 하나의 트랜잭션으로 처리한다.
-
----
-
-## 16. 시간 스냅샷 정책
-
-`event_start_time_sec`, `event_end_time_sec`는 DB에 유지한다.
-
-용도는 다음과 같다.
-
-- 기록 등록 당시 클립 구간 보존
-- 클립 시간 수정 전 과거 상태 확인
-- 소프트 삭제된 클립의 기록 이력 확인
-- 이벤트 상세 조회 시 등록 당시 구간 표시
-- 추후 감사 로그와 데이터 복구 참고
-
-클립 시간이 수정되어도 기존 이벤트 시간은 자동 갱신하지 않는다.
-
-예시는 다음과 같다.
-
-```text
-이벤트 등록 당시 클립
-120초 ~ 135초
-
-이후 클립 수정
-115초 ~ 140초
-
-player_record_event 스냅샷
-120초 ~ 135초 유지
-```
-
-실제 클립 재생은 현재 연결된 클립 URL과 현재 클립 메타데이터를 사용한다.
-
-이벤트 시간은 재생 제어의 원본값이 아니라 확인용 스냅샷이다.
-
----
-
-## 17. 예외 상황
-
-### 공통
-
-- 인증되지 않은 사용자
-- 관리 권한이 없는 사용자
-- 존재하지 않거나 삭제된 경기 영상
-- 존재하지 않거나 삭제된 선수
-- 대상 회원이 `PLAYER`가 아닌 경우
-- 기록 수치가 0 미만 또는 255 초과
-
-### 클립 연결
-
-- 존재하지 않거나 삭제된 클립
-- `READY`가 아닌 클립
-- 경기 영상과 클립 원본 영상 불일치
-- `clipSourceType`과 클립 ID 조합 오류
-- 팀 클립 ID와 선수 클립 ID가 동시에 존재
-- 선수 개인 클립 대상 선수 불일치
-- 같은 클립과 같은 이벤트 유형의 중복 연결
-- 클립 시작·종료 시간 정보 오류
-
-중복 연결 사용자 메시지는 다음 취지를 사용한다.
-
-```text
-선택한 클립에는 해당 선수 기록 유형이 이미 연결되어 있습니다.
-```
-
----
-
-## 18. DB 설계 방향
-
-이번 정책 변경으로 신규 테이블이나 신규 컬럼은 필요하지 않다.
-
-유지 테이블은 다음과 같다.
+## 4. 주요 테이블
 
 ```text
 player_record
 player_record_event
 player_record_event_clip
+game_video_upload
 team_video_clip
 player_video_clip
-game_video_upload
 member
 ```
 
-유지 컬럼은 다음과 같다.
+신규 테이블과 신규 컬럼은 추가하지 않는다.
+
+기존 컬럼을 그대로 사용한다.
 
 ```text
 player_record_event.event_start_time_sec
@@ -731,146 +122,655 @@ player_record_event.event_end_time_sec
 player_record_event.value
 ```
 
-중복 연결은 우선 Service/Repository 계층에서 검증한다.
-
-동시 요청 중복 방지가 필요하므로 트랜잭션 잠금 또는 DB 수준 보강 방식을 구현 단계에서 검토한다.
+삭제는 기존 `is_deleted` 기반 소프트 삭제 정책을 유지한다.
 
 ---
 
-## 19. 프론트엔드 구현 방향
+## 5. 선수 요약 기록 API
 
-주요 수정 파일은 다음과 같다.
+기존 선수 기록 API 구조를 유지한다.
 
-```text
-frontend/src/pages/PlayerRecordPage.tsx
-frontend/src/pages/MatchVideoPage.tsx
-frontend/src/components/analysis/PlayerRecordEventEditorPanel.tsx
-frontend/src/types/playerRecord.ts
-frontend/src/types/playerRecordEvent.ts
-frontend/src/api/playerRecordApi.ts
-frontend/src/api/playerRecordEventApi.ts
-frontend/src/constants/routes.ts
+```http
+GET   /api/management/player-records
+GET   /api/management/player-records/{recordId}
+POST  /api/management/player-records
+PATCH /api/management/player-records/{recordId}
 ```
 
-컴포넌트명 `PlayerRecordEventEditorPanel`은 최종 역할에 맞춰 `PlayerRecordEditorPanel` 등으로 변경할 수 있다.
+프론트는 현재 경기와 대상 선수 기준으로 기존 기록을 먼저 조회한다.
 
-정확한 파일명 변경은 실제 참조 범위를 확인한 후 진행한다.
+```http
+GET /api/management/player-records?uploadId={uploadId}&playerId={playerId}
+```
 
----
+기존 기록이 없으면 생성 API를 호출한다.
 
-## 20. 구현 순서
+```http
+POST /api/management/player-records
+```
 
-### 백엔드
+기존 기록이 있으면 조회된 `recordId`로 수정 API를 호출한다.
 
-1. 기존 선수 기록 Controller, DTO, Service, Validator, Repository 확인
-2. 기존 이벤트-클립 연결 DTO와 서비스 확인
-3. 요구사항 문서와 기존 구현 차이 정리
-4. 클립 연결 요청 DTO에서 시간과 `value` 제거
-5. 클립 시간 자동 추출 로직 구현
-6. `value = 1` 고정 처리
-7. 동일 클립·동일 이벤트 유형 중복 검증 구현
-8. 기존 기록이 없을 때 자동 생성 로직 확인 및 보완
-9. 요약 기록 +1 반영 로직 확인
-10. 트랜잭션 테스트
-11. 권한 테스트
-12. 중복 요청 테스트
-13. 기존 조회 API 회귀 테스트
+```http
+PATCH /api/management/player-records/{recordId}
+```
 
-### 프론트엔드
-
-1. 백엔드 DTO와 API 확정 후 타입 동기화
-2. `PlayerRecordPage` 등록·수정·삭제 UI 제거
-3. `MatchVideoPage` 버튼명을 `선수 기록 등록`으로 변경
-4. 선수 기록 등록 패널 재구성
-5. 클립 없이 등록 전체 카운터 UI 구현
-6. 기존 기록 조회 후 생성·수정 분기
-7. 팀 분석 클립 연결 목록 구현
-8. 선수 개인 분석 클립 연결 목록 구현
-9. 클립 연결 시 이벤트 유형 단일 선택 구현
-10. 중복 오류 메시지 표시
-11. 빌드와 전체 회귀 테스트
+백엔드는 동일 경기와 동일 선수의 활성 기록 중복 생성을 계속 차단한다.
 
 ---
 
-## 21. 테스트 기준
+## 6. 클립 없이 선수 기록 등록
 
-### 클립 없이 등록
+클립 없이 등록할 때는 `player_record`만 생성하거나 갱신한다.
 
-- 기존 기록이 없으면 모든 값 0 표시
-- 여러 항목 `+` 조정
-- 여러 항목 `-` 조정
-- 0 아래로 감소하지 않음
-- 최종 저장 한 번으로 전체 값 저장
-- 기존 기록이 있으면 기존 값 표시
-- 기존 값에서 갱신 저장
-- 중복 `player_record`가 생성되지 않음
+다음 데이터는 생성하지 않는다.
+
+```text
+player_record_event
+player_record_event_clip
+```
+
+### 신규 기록
+
+현재 경기와 선수의 활성 `player_record`가 없으면 사용자가 입력한 전체 요약 기록으로 신규 생성한다.
+
+초기 화면에서는 모든 수치를 0으로 표시한다.
+
+### 기존 기록
+
+현재 경기와 선수의 활성 `player_record`가 있으면 기존 값을 조회해 화면에 표시한다.
+
+사용자가 여러 기록 항목을 수정한 뒤 최종 저장 버튼을 누르면 전체 값을 한 번에 갱신한다.
+
+### 입력 항목
+
+```text
+minutesPlayed
+goals
+assists
+shots
+shotsOnTarget
+passes
+successfulPasses
+dribbles
+successfulDribbles
+tackles
+interceptions
+clearances
+saves
+yellowCards
+redCards
+memo
+```
+
+### 수치 검증
+
+각 수치는 다음 범위만 검증한다.
+
+```text
+최소값: 0
+최대값: 255
+```
+
+현재 단계에서는 다음 추가 정합성 검증을 적용하지 않는다.
+
+```text
+shotsOnTarget <= shots
+successfulPasses <= passes
+successfulDribbles <= dribbles
+```
+
+---
+
+## 7. 클립 연결 이벤트 등록 API
+
+클립 연결 이벤트 등록은 다음 API만 사용한다.
+
+```http
+POST /api/management/player-record-events/with-clip-link
+```
+
+한 요청에서 다음을 각각 하나씩 선택한다.
+
+* 대상 선수 한 명
+* 이벤트 유형 한 개
+* 팀 분석 클립 또는 선수 개인 분석 클립 한 개
+
+하나의 요청에서 여러 이벤트 유형을 등록하지 않는다.
+
+---
+
+## 8. 클립 연결 요청 DTO
+
+### 공통 필드
+
+```text
+uploadId
+playerId
+eventType
+eventMemo
+clipSourceType
+teamClipId
+playerClipId
+```
+
+다음 필드는 요청 DTO에서 제거한다.
+
+```text
+eventStartTimeSec
+eventEndTimeSec
+value
+```
+
+### 팀 분석 클립 연결 요청
+
+```json
+{
+  "uploadId": 8,
+  "playerId": 8,
+  "eventType": "SHOT",
+  "eventMemo": "팀 분석 클립 연결",
+  "clipSourceType": "TEAM_ANALYSIS",
+  "teamClipId": 10,
+  "playerClipId": null
+}
+```
+
+### 선수 개인 분석 클립 연결 요청
+
+```json
+{
+  "uploadId": 8,
+  "playerId": 8,
+  "eventType": "SUCCESSFUL_PASS",
+  "eventMemo": "선수 개인 분석 클립 연결",
+  "clipSourceType": "PLAYER_ANALYSIS",
+  "teamClipId": null,
+  "playerClipId": 15
+}
+```
+
+---
+
+## 9. 클립 출처 조합
+
+### TEAM_ANALYSIS
+
+```text
+clipSourceType = TEAM_ANALYSIS
+teamClipId 필수
+playerClipId = null
+```
+
+### PLAYER_ANALYSIS
+
+```text
+clipSourceType = PLAYER_ANALYSIS
+teamClipId = null
+playerClipId 필수
+```
+
+두 클립 ID가 모두 존재하거나 모두 없는 요청은 차단한다.
+
+---
+
+## 10. 백엔드 필수 검증
+
+클립 연결 이벤트 등록 시 백엔드는 다음 항목을 검증한다.
+
+1. 로그인 사용자가 `COACH` 또는 `ANALYST`인지
+2. `isAdmin`만으로 관리 권한을 부여하지 않는지
+3. 요청 경기 영상이 존재하는지
+4. 요청 경기 영상이 소프트 삭제되지 않았는지
+5. 기록 대상 회원이 존재하는지
+6. 기록 대상 회원의 역할이 `PLAYER`인지
+7. 선택한 클립이 존재하는지
+8. 선택한 클립이 소프트 삭제되지 않았는지
+9. 선택한 클립의 상태가 `READY`인지
+10. 요청 경기 영상과 클립 원본 경기 영상이 일치하는지
+11. `clipSourceType`과 두 클립 ID 조합이 올바른지
+12. 선수 개인 분석 클립 대상 선수와 기록 대상 선수가 일치하는지
+13. 같은 클립과 같은 이벤트 유형의 활성 연결이 이미 존재하는지
+14. 클립 시간이 원본 경기 영상 범위를 벗어나지 않는지
+15. 이벤트 메모가 DB 최대 길이를 초과하지 않는지
+
+---
+
+## 11. 이벤트 시간과 value 결정
+
+클립 연결 요청에서는 이벤트 시간과 `value`를 받지 않는다.
+
+백엔드가 선택한 클립에서 다음 값을 조회한다.
+
+```text
+eventStartTimeSec = clip.startTimeSec
+eventEndTimeSec = clip.endTimeSec
+value = 1
+```
+
+이 값은 `player_record_event`에 저장한다.
+
+응답 DTO에서는 저장된 이벤트 시간과 `value`를 반환할 수 있다.
+
+---
+
+## 12. 이벤트 시간 스냅샷 정책
+
+이벤트 시작·종료 시간은 이벤트 등록 당시 클립 구간의 스냅샷이다.
+
+클립 시간이 나중에 수정되더라도 기존 이벤트의 다음 값은 변경하지 않는다.
+
+```text
+player_record_event.event_start_time_sec
+player_record_event.event_end_time_sec
+```
+
+실제 영상 재생은 이벤트에 연결된 현재 팀 분석 클립 또는 선수 개인 분석 클립을 기준으로 한다.
+
+따라서 이벤트에 저장된 시간과 현재 클립의 시간이 이후 서로 달라질 수 있다.
+
+---
+
+## 13. 동일 클립·동일 이벤트 유형 중복 정책
+
+중복 기준은 다음과 같다.
+
+```text
+clipSourceType
++ 실제 teamClipId 또는 playerClipId
++ eventType
++ 활성 player_record_event
++ 활성 player_record_event_clip
+```
+
+### 허용
+
+```text
+클립 10 + SHOT
+클립 10 + PASS
+```
+
+같은 클립에 서로 다른 이벤트 유형을 별도 요청으로 등록할 수 있다.
+
+### 차단
+
+```text
+클립 10 + SHOT
+클립 10 + SHOT
+```
+
+같은 클립에 같은 이벤트 유형을 다시 등록할 수 없다.
+
+중복 기준에는 기록 대상 선수를 추가하지 않는다.
+
+팀 분석 클립 하나에 이미 `SHOT`이 연결되어 있다면 다른 선수 대상으로 같은 팀 클립과 `SHOT`을 다시 등록하는 요청도 차단한다.
+
+중복 시 HTTP 상태는 `409 Conflict`를 사용한다.
+
+사용자 메시지는 다음 취지를 사용한다.
+
+```text
+선택한 클립에는 해당 선수 기록 유형이 이미 연결되어 있습니다.
+```
+
+---
+
+## 14. 동시 중복 요청 방지
+
+단순 중복 조회만으로는 동시에 들어온 두 요청을 모두 막을 수 없다.
+
+선택한 팀 분석 클립 또는 선수 개인 분석 클립을 비관적 쓰기 잠금으로 조회한다.
+
+```text
+PESSIMISTIC_WRITE
+```
+
+처리 순서는 다음과 같다.
+
+1. 클립 잠금 조회
+2. 클립 상태와 관계 검증
+3. 동일 클립·동일 이벤트 유형 중복 조회
+4. 중복이 없을 때 이벤트 저장
+5. 클립 연결 저장
+6. 선수 요약 기록 갱신
+7. 트랜잭션 종료 후 잠금 해제
+
+동시에 동일한 요청이 들어오면 한 요청만 성공하고 다른 요청은 중복 오류를 반환해야 한다.
+
+---
+
+## 15. 기존 player_record 자동 생성
+
+클립 연결 요청 시 현재 경기와 선수의 활성 `player_record`를 조회한다.
+
+기존 기록이 있으면 해당 기록을 사용한다.
+
+기존 기록이 없으면 모든 요약 수치를 0으로 생성한다.
+
+```text
+minutesPlayed = 0
+goals = 0
+assists = 0
+shots = 0
+shotsOnTarget = 0
+passes = 0
+successfulPasses = 0
+dribbles = 0
+successfulDribbles = 0
+tackles = 0
+interceptions = 0
+clearances = 0
+saves = 0
+yellowCards = 0
+redCards = 0
+memo = null
+```
+
+이후 선택한 이벤트 유형에 해당하는 요약 수치를 반영한다.
+
+최초 기록자는 현재 로그인한 `COACH` 또는 `ANALYST`다.
+
+---
+
+## 16. 이벤트 유형별 요약 기록 반영
+
+클립 연결 이벤트의 `value`는 항상 1이다.
+
+```text
+GOAL
+→ goals +1
+
+ASSIST
+→ assists +1
+
+SHOT
+→ shots +1
+
+SHOT_ON_TARGET
+→ shots +1
+→ shotsOnTarget +1
+
+PASS
+→ passes +1
+
+SUCCESSFUL_PASS
+→ passes +1
+→ successfulPasses +1
+
+DRIBBLE
+→ dribbles +1
+
+SUCCESSFUL_DRIBBLE
+→ dribbles +1
+→ successfulDribbles +1
+
+TACKLE
+→ tackles +1
+
+INTERCEPTION
+→ interceptions +1
+
+CLEARANCE
+→ clearances +1
+
+SAVE
+→ saves +1
+
+YELLOW_CARD
+→ yellowCards +1
+
+RED_CARD
+→ redCards +1
+
+ETC
+→ 이벤트와 클립 연결은 생성
+→ player_record 요약 수치는 변경하지 않음
+```
+
+요약 기록 수치가 255를 초과하면 저장하지 않고 전체 트랜잭션을 롤백한다.
+
+---
+
+## 17. 트랜잭션 정책
+
+다음 작업은 하나의 트랜잭션으로 처리한다.
+
+```text
+클립 잠금 조회
+클립 검증
+중복 검증
+player_record 조회 또는 생성
+player_record_event 저장
+player_record_event_clip 저장
+player_record 요약 수치 갱신
+```
+
+중간에 예외가 발생하면 다음 데이터가 모두 저장 이전 상태로 롤백되어야 한다.
+
+```text
+player_record
+player_record_event
+player_record_event_clip
+```
+
+요약 기록 증가 과정에서 예외가 발생해도 앞서 저장한 이벤트와 클립 연결은 DB에 남지 않아야 한다.
+
+---
+
+## 18. 독립 선수 기록 이벤트 쓰기 API 제거
+
+다음 독립 쓰기 API를 제거한다.
+
+```http
+POST   /api/management/player-record-events
+PATCH  /api/management/player-record-events/{eventId}
+DELETE /api/management/player-record-events/{eventId}
+```
+
+다음 요청 DTO도 제거한다.
+
+```text
+CreatePlayerRecordEventRequestDTO
+UpdatePlayerRecordEventRequestDTO
+```
+
+선수 기록 이벤트는 분석 클립 연결 등록 API를 통해서만 새로 생성한다.
+
+이벤트 시간과 `value`를 임의로 수정하는 기능은 제공하지 않는다.
+
+---
+
+## 19. 유지하는 이벤트 API
+
+### 관리용
+
+```http
+POST /api/management/player-record-events/with-clip-link
+GET  /api/management/player-records/{recordId}/events
+GET  /api/management/player-record-events/{eventId}
+```
+
+### 선수 본인
+
+```http
+GET /api/player/me/player-records/{recordId}/events
+GET /api/player/me/player-record-events/{eventId}
+```
+
+선수 본인 조회는 로그인 사용자 ID와 이벤트 대상 선수 ID를 백엔드에서 비교한다.
+
+다른 선수의 기록이나 이벤트를 조회하려는 요청은 차단한다.
+
+---
+
+## 20. 주요 예외
+
+### READY가 아닌 클립
+
+```text
+HTTP 400 Bad Request
+READY 상태의 분석 클립만 선수 기록에 연결할 수 있습니다.
+```
+
+### 동일 클립·동일 이벤트 유형 중복
+
+```text
+HTTP 409 Conflict
+선택한 클립에는 해당 선수 기록 유형이 이미 연결되어 있습니다.
+```
+
+### 경기 영상 불일치
+
+```text
+HTTP 400 Bad Request
+선수 기록 이벤트와 연결할 클립의 경기 영상이 일치하지 않습니다.
+```
+
+### 선수 개인 분석 클립 대상 선수 불일치
+
+```text
+HTTP 400 Bad Request
+선수 기록 대상 선수와 선수 개인 분석 클립 대상 선수가 일치하지 않습니다.
+```
+
+### 잘못된 클립 출처 조합
+
+```text
+HTTP 400 Bad Request
+선수 기록 이벤트 클립 출처 유형이 올바르지 않습니다.
+```
+
+### 권한 없음
+
+```text
+HTTP 403 Forbidden
+선수 기록 이벤트 관리 권한이 없습니다.
+```
+
+---
+
+## 21. 소프트 삭제 정책
+
+기존 소프트 삭제 구조를 유지한다.
+
+```text
+is_deleted = false
+→ 활성 데이터
+
+is_deleted = true
+→ 삭제 데이터
+```
+
+동일 클립·동일 이벤트 유형 중복 검사는 이벤트와 클립 연결이 모두 활성 상태인 경우만 중복으로 판단한다.
+
+```text
+player_record_event.is_deleted = false
+player_record_event_clip.is_deleted = false
+```
+
+이번 개편에서는 독립 이벤트 삭제 API를 제거한다.
+
+---
+
+## 22. 사용자 확인 테스트
+
+다음 항목을 사용자가 실제로 정상 확인했다.
+
+### 선수 요약 기록
+
+* 경기와 선수 기준 기존 기록 조회
+* 기존 기록 신규 생성
+* 기존 기록 전체 값 갱신
+* 추가 상호 정합성 검증 제거
+* 음수 값 차단
+* 255 초과 값 차단
+* 동일 경기·동일 선수 중복 생성 차단
+* 클립 없이 등록 시 이벤트와 연결 데이터 미생성
 
 ### 팀 분석 클립 연결
 
-- 같은 경기의 `READY` 팀 클립만 표시
-- 클립 하나 선택
-- 대상 선수 선택
-- 이벤트 유형 하나 선택
-- 시간과 `value` 입력칸 미노출
-- 선택 유형 요약 기록 +1
-- 같은 클립의 다른 유형 등록 허용
-- 같은 클립의 같은 유형 재등록 차단
+* 정상 등록
+* 클립 시간 자동 저장
+* `value = 1` 자동 저장
+* 선수 요약 기록 증가
+* 같은 클립·같은 유형 중복 차단
+* 같은 클립·다른 유형 등록 허용
 
 ### 선수 개인 분석 클립 연결
 
-- 같은 경기의 `READY` 개인 클립만 표시
-- 개인 클립의 대상 선수 자동 적용
-- 이벤트 유형 하나 선택
-- 선택 유형 요약 기록 +1
-- 같은 클립의 다른 유형 등록 허용
-- 같은 클립의 같은 유형 재등록 차단
+* 정상 등록
+* 클립 시간 자동 저장
+* `value = 1` 자동 저장
+* 선수 요약 기록 증가
+* 같은 클립·같은 유형 중복 차단
+* 같은 클립·다른 유형 등록 허용
+* 개인 클립 대상 선수 불일치 차단
+* 잘못된 클립 ID 조합 차단
 
-### 권한
+### 권한 및 예외
 
-- `COACH`, `ANALYST` 등록 가능
-- `PLAYER` 등록 API 차단
-- 선수는 본인 조회만 가능
+* 기존 player_record가 없을 때 자동 생성
+* READY가 아닌 팀 클립 차단
+* READY가 아닌 선수 개인 클립 차단
+* 경기 영상 불일치 차단
+* COACH 등록 허용
+* ANALYST 등록 허용
+* PLAYER 등록 차단
+* `isAdmin = true`인 PLAYER 등록 차단
+* 실패 요청 시 이벤트·연결·요약 기록 미변경
 
-### 회귀
+### 회귀 및 트랜잭션
 
-- 관리용 선수 기록 검색 정상
-- 관리용 목록 조회 정상
-- 관리용 상세 조회 정상
-- 선수 본인 목록 조회 정상
-- 선수 본인 상세 조회 정상
-- 이벤트 목록·상세 조회 정상
-
----
-
-## 22. 추후 확장 가능성
-
-- 선수 기록 입력 항목 사용자 설정
-- 경기 포지션별 기록 항목 분리
-- 시즌 누적 기록
-- 경기별 기록 비교
-- 선수 간 기록 비교
-- 기록 차트와 시각화
-- 이벤트 클립 바로 재생
-- 이벤트 수정·삭제 전용 관리 화면
-- AI 이벤트 자동 인식
-- AI가 제안한 기록의 지도자 승인 흐름
-- 기록 변경 감사 로그
-- 중복 요청 방지를 위한 DB 유니크 구조 보강
+* 독립 이벤트 등록 API 제거
+* 독립 이벤트 수정 API 제거
+* 독립 이벤트 삭제 API 제거
+* 관리용 이벤트 목록·상세 조회
+* 선수 본인 이벤트 목록·상세 조회
+* 다른 선수 기록 접근 차단
+* `SHOT_ON_TARGET` 복합 요약 반영
+* `SUCCESSFUL_PASS` 복합 요약 반영
+* `SUCCESSFUL_DRIBBLE` 복합 요약 반영
+* `ETC` 요약 미반영
+* 클립 수정 후 이벤트 시간 스냅샷 유지
+* 요약 수치 최대값 초과 시 전체 롤백
+* 동일 요청 동시 전송 시 한 건만 생성
 
 ---
 
-## 23. 이번 정책 변경 요약
+## 23. 초기 요구사항에서 변경된 내용
 
-기존 정책에서 변경된 핵심 내용은 다음과 같다.
+초기 요구사항 이후 다음 정책이 최종 변경됐다.
 
-- 선수 기록 쓰기 기능을 `PlayerRecordPage`에서 `MatchVideoPage`로 이동
-- `PlayerRecordPage`를 조회 전용으로 변경
-- 버튼명을 `선수 기록 이벤트 등록`에서 `선수 기록 등록`으로 변경
-- 클립 없이 등록 시 요약 기록 전체를 한 번에 생성·갱신
-- 기존 기록이 있으면 기존 값을 불러와 갱신
-- 기록 카운터를 숫자 입력에서 `-`, `+` 버튼 방식으로 변경
-- 클립 연결 시 사용자 시간·수치 입력 제거
-- 클립 시간과 `value = 1`을 백엔드 자동 결정
-- 같은 클립의 다른 유형 등록 허용
-- 같은 클립의 같은 유형 중복 등록 차단
-- 이벤트 시간과 수치를 DB 스냅샷으로 유지
+1. 독립 선수 기록 이벤트 등록 API를 제거했다.
+2. 독립 선수 기록 이벤트 수정 API를 제거했다.
+3. 독립 선수 기록 이벤트 삭제 API를 제거했다.
+4. 선수 기록 이벤트는 클립 연결 API로만 생성한다.
+5. 독립 이벤트 등록·수정 요청 DTO를 삭제한다.
+6. 동일 클립·동일 이벤트 유형 동시 중복을 막기 위해 클립 비관적 잠금을 적용한다.
+7. 클립 없이 선수 기록 저장은 신규 upsert API를 만들지 않고 기존 조회·생성·수정 API를 조합해 처리한다.
+8. 선수 기록 수치 간 추가 상호 정합성 검증을 제거하고 각 값의 0~255 범위만 검증한다.
+9. DB 테이블과 컬럼은 변경하지 않는다.
+
+---
+
+## 24. 다음 프론트 구현 범위
+
+백엔드 구현과 테스트가 완료됐으므로 다음 작업은 프론트 연동이다.
+
+주요 범위:
+
+1. `PlayerRecordPage`를 검색·목록·상세 조회 전용으로 변경
+2. 등록·수정·삭제 UI 제거
+3. 독립 이벤트 등록·수정·삭제 UI 제거
+4. `MatchVideoPage` 버튼명을 `선수 기록 등록`으로 변경
+5. 클립 없이 등록 시 기존 기록 조회
+6. 기존 기록이 없으면 모든 값을 0으로 표시
+7. 기록별 `-`, 현재 값, `+` 카운터 UI
+8. 여러 기록을 조정한 뒤 최종 저장
+9. 기존 기록 유무에 따라 `POST` 또는 `PATCH` 호출
+10. 팀 분석 클립 하나와 이벤트 유형 하나 연결
+11. 선수 개인 분석 클립 하나와 이벤트 유형 하나 연결
+12. 이벤트 시간과 `value` 입력 UI 제거
+13. 동일 클립·동일 유형 중복 메시지 표시
+14. 변경된 백엔드 DTO와 프론트 타입 동기화
+15. 기존 경기 영상 북마크 기능 회귀 테스트
