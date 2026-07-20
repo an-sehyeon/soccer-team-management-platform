@@ -14,7 +14,7 @@ import {
 import { getManagementPlayerAnalysisClipDetail } from "../api/playerAnalysisClipApi";
 import { getTeamAnalysisClipDetail } from "../api/teamAnalysisClipApi";
 import PlayerAnalysisClipEditorPanel from "../components/analysis/PlayerAnalysisClipEditorPanel";
-import PlayerRecordEventEditorPanel from "../components/analysis/PlayerRecordEventEditorPanel";
+import PlayerRecordEditorPanel from "../components/analysis/PlayerRecordEditorPanel";
 import TeamAnalysisClipEditorPanel from "../components/analysis/TeamAnalysisClipEditorPanel";
 import VideoBookmarkSidebar from "../components/bookmark/VideoBookmarkSidebar";
 import { ROUTES, createMatchVideoAnalysisRoute } from "../constants/routes";
@@ -115,7 +115,7 @@ function parseAnalysisMode(searchParams: URLSearchParams): AnalysisMode {
     analysisMode === "team-clip-edit" ||
     analysisMode === "player-clip-create" ||
     analysisMode === "player-clip-edit" ||
-    analysisMode === "player-record-event"
+    analysisMode === "player-record-create"
   ) {
     return analysisMode;
   }
@@ -821,10 +821,10 @@ export default function MatchVideoPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleStartAnalysisFromBookmark("player-record-event")
+                        handleChangeAnalysisMode("player-record-create")
                       }
                     >
-                      선수 기록 이벤트 등록
+                      선수 기록 등록
                     </button>
                   </div>
                 </section>
@@ -918,10 +918,10 @@ export default function MatchVideoPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleChangeAnalysisMode("player-record-event")
+                        handleChangeAnalysisMode("player-record-create")
                       }
                     >
-                      선수 기록 이벤트 등록
+                      선수 기록 등록
                     </button>
                   </div>
                 </>
@@ -993,16 +993,10 @@ export default function MatchVideoPage() {
                 />
               )}
 
-              {analysisMode === "player-record-event" && (
-                <PlayerRecordEventEditorPanel
-                  key={[
-                    "player-record-event",
-                    selectedVideo.matchVideoId,
-                    selectedBookmark?.bookmarkId ?? "no-bookmark",
-                  ].join("-")}
+              {analysisMode === "player-record-create" && (
+                <PlayerRecordEditorPanel
+                  key={["player-record", selectedVideo.matchVideoId].join("-")}
                   matchVideo={selectedVideo}
-                  initialStartTimeSec={bookmarkInitialStartTimeSec}
-                  initialEndTimeSec={bookmarkInitialEndTimeSec}
                   onSaved={handleAnalysisSaved}
                 />
               )}

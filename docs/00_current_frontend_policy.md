@@ -12,6 +12,7 @@
 
 ```text
 docs/15_player_record_requirements_final.md
+docs/30_player_record_registration_frontend_integration_requirements.md
 ```
 
 경기 영상 북마크 관련 최신 상세 문서는 다음과 같다.
@@ -20,7 +21,7 @@ docs/15_player_record_requirements_final.md
 docs/29_match_video_bookmark_requirements.md
 ```
 
-선수 기록 백엔드 API 개편은 완료됐으며, 다음 작업은 최종 백엔드 DTO와 API에 맞춘 프론트 연동이다.
+선수 기록 백엔드 API 개편과 경기 영상 기반 선수 기록 등록 프론트 연동은 모두 완료됐다. 현재 다음 작업은 확정되지 않았다.
 
 ---
 
@@ -79,25 +80,23 @@ Authorization: Bearer {accessToken}
 
 분석 작업은 `/match-videos`의 `analysisMode` 쿼리 파라미터로 처리한다.
 
-현재 소스에 남아 있을 수 있는 분석 모드는 다음과 같다.
+현재 분석 모드는 다음과 같다.
 
 ```text
 team-clip-create
 team-clip-edit
 player-clip-create
 player-clip-edit
-player-record-event
+player-record-create
 ```
 
-선수 기록 프론트 개편에서는 `player-record-event`를 실제 역할에 맞는 이름으로 변경한다.
-
-권장 방향은 다음과 같다.
+선수 기록 등록 모드는 다음 값으로 확정됐다.
 
 ```text
 player-record-create
 ```
 
-정확한 값은 `routes.ts`, `MatchVideoPage.tsx`, 북마크 연결 버튼과 관련 링크를 함께 확인한 뒤 확정한다.
+기존 `player-record-event` 값은 `routes.ts`, `MatchVideoPage.tsx`, `DashboardHomePage.tsx`, `MobileHomePage.tsx`와 북마크 진입 경로에서 모두 제거됐다.
 
 ---
 
@@ -142,7 +141,7 @@ PLAYER
 
 백엔드 Controller, Request DTO, Response DTO를 확인한 뒤 타입을 작성한다.
 
-선수 기록 백엔드 API 개편은 완료됐으므로 이제 최종 DTO를 기준으로 프론트 타입을 동기화한다.
+선수 기록 프론트 타입과 API 함수는 최종 백엔드 DTO와 Controller 구조에 맞게 동기화됐다.
 
 ---
 
@@ -201,7 +200,6 @@ import type { FormEvent } from "react";
 MatchVideoPage.tsx
 PlayerRecordPage.tsx
 PlayerRecordEditorPanel.tsx
-PlayerRecordEventEditorPanel.tsx
 PlayerAnalysisClipEditorPanel.tsx
 TeamAnalysisClipEditorPanel.tsx
 VideoBookmarkSidebar.tsx
@@ -332,7 +330,7 @@ frontend/src/pages/MatchVideoPage.tsx
 
 ## 17. `PlayerRecordPage` 최종 정책
 
-`PlayerRecordPage`는 조회 전용으로 변경한다.
+`PlayerRecordPage`는 조회 전용으로 변경됐다.
 
 유지 기능은 다음과 같다.
 
@@ -374,6 +372,14 @@ frontend/src/pages/MatchVideoPage.tsx
 팀 분석 클립 연결
 선수 개인 분석 클립 연결
 ```
+
+핵심 컴포넌트는 다음이다.
+
+```text
+frontend/src/components/analysis/PlayerRecordEditorPanel.tsx
+```
+
+기존 `PlayerRecordEventEditorPanel.tsx`는 삭제됐다.
 
 ---
 
@@ -674,24 +680,56 @@ value
 
 ---
 
-## 30. 현재 다음 프론트 작업
 
-다음 작업은 경기 영상 기반 선수 기록 등록 프론트 연동이다.
+## 30. 선수 기록 프론트 연동 완료 상태
 
-백엔드 PR이 `main`에 병합된 후 최신 `main`에서 진행한다.
+경기 영상 기반 선수 기록 등록 프론트 연동은 완료됐다.
 
-구현 순서는 다음과 같다.
+상세 완료 문서는 다음과 같다.
 
-1. 백엔드 Controller와 DTO 최종 확인
-2. 선수 기록·이벤트 프론트 타입 갱신
-3. 제거된 독립 이벤트 API 함수 삭제
-4. `PlayerRecordPage` 조회 전용 정리
-5. `MatchVideoPage` 버튼과 분석 모드명 변경
-6. 선수 기록 등록 패널 구조 개편
-7. 클립 없이 등록 카운터 UI
-8. 기존 기록 조회와 생성·수정 분기
-9. 팀 분석 클립 연결 등록
-10. 선수 개인 분석 클립 연결 등록
-11. 중복 오류 표시
-12. 기존 북마크 기능 회귀 테스트
-13. 기존 팀·선수 분석 클립 기능 회귀 테스트
+```text
+docs/30_player_record_registration_frontend_integration_requirements.md
+```
+
+완료된 주요 항목은 다음과 같다.
+
+1. `PlayerRecordPage` 조회 전용화
+2. 선수 기록 등록·수정·삭제 UI 제거
+3. 독립 이벤트 등록·수정·삭제 UI와 API 함수 제거
+4. `MatchVideoPage`에 `PlayerRecordEditorPanel` 연결
+5. 분석 모드 `player-record-create` 적용
+6. 기존 선수 기록 조회 후 POST·PATCH 분기
+7. 모든 기록 항목의 0~255 카운터 UI 구현
+8. 팀 분석 클립 연결 등록
+9. 선수 개인 분석 클립 연결 등록
+10. 개인 클립 대상 선수 읽기 전용 표시
+11. 클립 연결 요청에서 이벤트 시간과 `value` 제거
+12. 동일 클립·동일 유형 중복 `409 Conflict` 메시지 처리
+13. COACH·ANALYST 관리 UI 표시와 PLAYER 미표시
+14. PC·모바일 반응형 스타일 적용
+15. 대시보드·모바일 홈·북마크 진입 경로 동기화
+
+사용자가 실제 정상 확인한 테스트는 다음과 같다.
+
+* 프론트 빌드 정상 완료
+* COACH·ANALYST 선수 기록 등록 정상
+* PLAYER 등록 UI 미표시 및 관리 API 차단
+* 신규 기록 POST 저장
+* 기존 기록 PATCH 수정
+* 선수 재선택 시 기존 값과 메모 재조회
+* 기록값 최소 0, 최대 255 제한
+* 클립 없이 등록 시 이벤트·클립 연결 데이터 미생성
+* 팀 분석 클립 정상 연결과 요약 기록 증가
+* 팀 클립 동일 유형 중복 차단 및 다른 유형 허용
+* 다른 선수 대상 동일 팀 클립·동일 유형 중복 차단
+* 선수 개인 분석 클립 정상 연결
+* 개인 클립 대상 선수와 요청 선수 일치
+* 개인 클립 동일 유형 중복 차단 및 다른 유형 허용
+* 기존 기록이 없는 선수의 기록 자동 생성
+* `PlayerRecordPage` 목록·상세·이벤트·연결 클립 조회
+* 경기 영상 북마크 회귀 테스트
+* 팀 분석 클립 회귀 테스트
+* 선수 개인 분석 클립 회귀 테스트
+* 브라우저와 개발 서버 콘솔 오류 없음
+
+현재 다음 작업은 확정되지 않았다.

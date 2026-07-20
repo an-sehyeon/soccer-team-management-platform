@@ -164,7 +164,7 @@ export function DashboardHomePage() {
                     onClick={() =>
                       navigate(
                         createMatchVideoAnalysisRoute({
-                          analysisMode: "player-record-event",
+                          analysisMode: "player-record-create",
                         }),
                       )
                     }
@@ -228,7 +228,7 @@ export function DashboardHomePage() {
                   onClick={() =>
                     navigate(
                       createMatchVideoAnalysisRoute({
-                        analysisMode: "player-record-event",
+                        analysisMode: "player-record-create",
                       }),
                     )
                   }

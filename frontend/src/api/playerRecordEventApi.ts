@@ -2,31 +2,22 @@
 
 import { axiosInstance } from "./axiosInstance";
 import type {
-  CreatePlayerRecordEventRequest,
   CreatePlayerRecordEventResponse,
   CreatePlayerRecordEventWithClipLinkRequest,
   PlayerRecordEventListResponse,
   PlayerRecordEventResponse,
-  UpdatePlayerRecordEventRequest,
 } from "../types/playerRecordEvent";
 
-// 관리용 선수 기록 이벤트 등록
-export async function createPlayerRecordEvent(
-  request: CreatePlayerRecordEventRequest,
-): Promise<CreatePlayerRecordEventResponse> {
-  const response = await axiosInstance.post(
-    "/api/management/player-record-events",
-    request,
-  );
-
-  return response.data;
-}
-
-// 관리용 선수 기록 이벤트 + 클립 연결 등록
+/**
+ * 선수 기록 이벤트와 분석 클립 연결 등록
+ *
+ * 이벤트 시간과 value는 요청하지 않으며,
+ * 선택한 분석 클립을 기준으로 백엔드에서 자동 저장한다.
+ */
 export async function createPlayerRecordEventWithClipLink(
   request: CreatePlayerRecordEventWithClipLinkRequest,
 ): Promise<CreatePlayerRecordEventResponse> {
-  const response = await axiosInstance.post(
+  const response = await axiosInstance.post<CreatePlayerRecordEventResponse>(
     "/api/management/player-record-events/with-clip-link",
     request,
   );
@@ -38,7 +29,7 @@ export async function createPlayerRecordEventWithClipLink(
 export async function getManagementPlayerRecordEvents(
   recordId: number,
 ): Promise<PlayerRecordEventListResponse> {
-  const response = await axiosInstance.get(
+  const response = await axiosInstance.get<PlayerRecordEventListResponse>(
     `/api/management/player-records/${recordId}/events`,
   );
 
@@ -49,36 +40,18 @@ export async function getManagementPlayerRecordEvents(
 export async function getManagementPlayerRecordEventDetail(
   eventId: number,
 ): Promise<PlayerRecordEventResponse> {
-  const response = await axiosInstance.get(
+  const response = await axiosInstance.get<PlayerRecordEventResponse>(
     `/api/management/player-record-events/${eventId}`,
   );
 
   return response.data;
-}
-
-// 관리용 선수 기록 이벤트 수정
-export async function updatePlayerRecordEvent(
-  eventId: number,
-  request: UpdatePlayerRecordEventRequest,
-): Promise<PlayerRecordEventResponse> {
-  const response = await axiosInstance.patch(
-    `/api/management/player-record-events/${eventId}`,
-    request,
-  );
-
-  return response.data;
-}
-
-// 관리용 선수 기록 이벤트 삭제
-export async function deletePlayerRecordEvent(eventId: number): Promise<void> {
-  await axiosInstance.delete(`/api/management/player-record-events/${eventId}`);
 }
 
 // 선수 본인 특정 기록의 이벤트 목록 조회
 export async function getMyPlayerRecordEvents(
   recordId: number,
 ): Promise<PlayerRecordEventListResponse> {
-  const response = await axiosInstance.get(
+  const response = await axiosInstance.get<PlayerRecordEventListResponse>(
     `/api/player/me/player-records/${recordId}/events`,
   );
 
@@ -89,7 +62,7 @@ export async function getMyPlayerRecordEvents(
 export async function getMyPlayerRecordEventDetail(
   eventId: number,
 ): Promise<PlayerRecordEventResponse> {
-  const response = await axiosInstance.get(
+  const response = await axiosInstance.get<PlayerRecordEventResponse>(
     `/api/player/me/player-record-events/${eventId}`,
   );
 

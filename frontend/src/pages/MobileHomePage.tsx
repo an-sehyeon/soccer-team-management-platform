@@ -154,7 +154,7 @@ export function MobileHomePage() {
                     onClick={() =>
                       navigate(
                         createMatchVideoAnalysisRoute({
-                          analysisMode: "player-record-event",
+                          analysisMode: "player-record-create",
                         }),
                       )
                     }
