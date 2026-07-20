@@ -3,23 +3,16 @@
 export const ROUTES = {
   LOGIN: "/login",
   SIGN_UP: "/sign-up",
-
   DASHBOARD: "/dashboard",
   PLAYER: "/player",
   MOBILE: "/mobile",
-
   MEMBER_APPROVAL: "/dashboard/member-approval",
-
   SCHEDULE: "/schedules",
   NOTICE: "/notices",
-
   MATCH_VIDEO: "/match-videos",
   MATCH_VIDEO_CREATE: "/match-videos/new",
-
   TEAM_ANALYSIS_CLIP: "/team-analysis-clips",
-
   PLAYER_ANALYSIS_CLIP: "/player-analysis-clips",
-
   PLAYER_RECORD: "/player-records",
 } as const;
 
@@ -28,7 +21,7 @@ export type MatchVideoAnalysisMode =
   | "team-clip-edit"
   | "player-clip-create"
   | "player-clip-edit"
-  | "player-record-event";
+  | "player-record-create";
 
 export function createMatchVideoAnalysisRoute(params: {
   analysisMode: MatchVideoAnalysisMode;

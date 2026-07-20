@@ -19,29 +19,20 @@ export type PlayerRecordEventType =
 
 export type PlayerRecordClipSourceType = "TEAM_ANALYSIS" | "PLAYER_ANALYSIS";
 
-export type CreatePlayerRecordEventRequest = {
+/**
+ * 선수 기록 이벤트와 분석 클립 연결 등록 요청
+ *
+ * 이벤트 시간과 value는 선택한 분석 클립을 기준으로
+ * 백엔드에서 자동 결정한다.
+ */
+export type CreatePlayerRecordEventWithClipLinkRequest = {
   uploadId: number;
   playerId: number;
   eventType: PlayerRecordEventType;
-  eventStartTimeSec: number;
-  eventEndTimeSec: number;
-  value: number;
   eventMemo: string | null;
-};
-
-export type CreatePlayerRecordEventWithClipLinkRequest =
-  CreatePlayerRecordEventRequest & {
-    clipSourceType: PlayerRecordClipSourceType;
-    teamClipId: number | null;
-    playerClipId: number | null;
-  };
-
-export type UpdatePlayerRecordEventRequest = {
-  eventType: PlayerRecordEventType;
-  eventStartTimeSec: number;
-  eventEndTimeSec: number;
-  value: number;
-  eventMemo: string | null;
+  clipSourceType: PlayerRecordClipSourceType;
+  teamClipId: number | null;
+  playerClipId: number | null;
 };
 
 export type CreatePlayerRecordEventResponse = {
