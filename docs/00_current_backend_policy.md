@@ -12,6 +12,7 @@
 
 ```text
 docs/15_player_record_requirements_final.md
+docs/30_player_record_registration_frontend_integration_requirements.md
 ```
 
 경기 영상 북마크 관련 최신 상세 문서는 다음과 같다.
@@ -19,6 +20,8 @@ docs/15_player_record_requirements_final.md
 ```text
 docs/29_match_video_bookmark_requirements.md
 ```
+
+경기 영상 기반 선수 기록 등록 프론트 연동도 완료됐다. 이번 프론트 작업에서는 백엔드 Controller, DTO, Entity, DB 구조를 변경하지 않았다.
 
 ---
 
@@ -723,21 +726,26 @@ viewCount + 1
 
 ---
 
-## 28. 다음 작업
 
-다음 작업은 경기 영상 기반 선수 기록 등록 프론트 연동이다.
+## 28. 선수 기록 프론트 연동 완료 상태
 
-백엔드 PR이 `main`에 병합된 후 최신 `main`을 기준으로 진행한다.
+경기 영상 기반 선수 기록 등록 프론트 연동이 완료됐다.
 
-주요 프론트 구현 범위는 다음과 같다.
+프론트에서 완료된 주요 항목은 다음과 같다.
 
-1. `PlayerRecordPage`를 검색·목록·상세 조회 전용으로 변경
-2. 선수 기록과 이벤트 등록·수정·삭제 UI 제거
-3. `MatchVideoPage` 버튼명을 `선수 기록 등록`으로 변경
-4. 클립 없이 등록 카운터 UI 구현
-5. 기존 기록 조회 후 생성·수정 API 분기
-6. 팀 분석 클립 연결 등록
-7. 선수 개인 분석 클립 연결 등록
-8. 이벤트 시간과 `value` 입력 UI 제거
-9. 동일 클립·동일 유형 중복 오류 표시
-10. 기존 북마크와 분석 클립 기능 회귀 테스트
+1. `PlayerRecordPage` 조회 전용화
+2. `MatchVideoPage` 기준 선수 기록 등록
+3. 기존 기록 조회 후 생성·수정 API 분기
+4. 팀 분석 클립 연결 등록
+5. 선수 개인 분석 클립 연결 등록
+6. 클립 연결 요청에서 이벤트 시간과 `value` 제거
+7. 독립 이벤트 등록·수정·삭제 프론트 호출 제거
+8. 동일 클립·동일 이벤트 유형 중복 메시지 처리
+9. COACH·ANALYST 등록 UI 제공
+10. PLAYER 등록 UI 미표시와 백엔드 접근 차단 확인
+
+이번 프론트 연동으로 변경된 백엔드 파일, API, DTO, Entity, 테이블은 없다.
+
+기존 백엔드 선수 기록 정책과 권한·트랜잭션·중복 검증 정책을 그대로 유지한다.
+
+현재 다음 작업은 확정되지 않았다.

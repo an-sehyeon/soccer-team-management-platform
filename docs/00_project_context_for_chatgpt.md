@@ -217,39 +217,44 @@ video_bookmark
 
 ---
 
+
 ## 10. 현재까지 완료된 기능
 
 * 회원가입·로그인·JWT 인증
 * 역할 기반 접근 제어
 * 관리자 회원 승인
-* 스케줄 백엔드·프론트
-* 공지사항 백엔드·프론트
-* 경기 영상 업로드 백엔드·프론트
+* 스케줄 백엔드·프론트 연동
+* 공지사항 백엔드·프론트 연동
+* 경기 영상 업로드 백엔드·프론트 연동
 * ffprobe 영상 길이 추출
-* 팀 분석 클립 백엔드·프론트
-* 팀 분석 클립 드로잉 백엔드·프론트
+* 팀 분석 클립 백엔드·프론트 연동
+* 팀 분석 클립 드로잉 백엔드·프론트 연동
 * 팀 분석 클립 실제 mp4 비동기 생성
 * 팀 분석 클립+드로잉 통합 생성·수정
 * 팀 분석 클립 등록·수정을 `MatchVideoPage`로 통합
-* 선수 개인 분석 클립 백엔드·프론트
-* 선수 개인 분석 클립 드로잉 백엔드·프론트
-* 선수 개인 분석 클립 조회 기록 백엔드·프론트
+* 선수 개인 분석 클립 백엔드·프론트 연동
+* 선수 개인 분석 클립 드로잉 백엔드·프론트 연동
+* 선수 개인 분석 클립 조회 기록 백엔드·프론트 연동
 * 선수 목록 조회 API
 * 선수 개인 분석 클립 실제 mp4 비동기 생성
 * 선수 개인 분석 클립+드로잉 통합 생성·수정
 * 선수 개인 분석 클립 등록·수정을 `MatchVideoPage`로 통합
 * 선수 기록 기본 CRUD 백엔드
-* 선수 기록 조회·관리 프론트
-  개인 분석 클립 등록·수정을 `MatchVideoPage`로 통합- 선수 기록 이벤트 백엔드
-* 선수 기록 이벤트 조회·수정·삭제 프론트
+* 선수 기록 목록·상세·이벤트 조회 프론트
 * 선수 기록 이벤트와 팀 분석 클립 연결
 * 선수 기록 이벤트와 선수 개인 분석 클립 연결
-* 이벤트 생성·수정·삭제 시 요약 수치 자동 보정
+* 이벤트 등록 시 선수 요약 수치 자동 반영
 * 경기 영상 화면을 분석 작업 허브로 통합
 * 경기 영상 북마크 백엔드·프론트 연동
 * 경기 원본·팀 분석 클립·선수 개인 클립 북마크 관리
 * 북마크 기반 팀·선수 분석 클립 초기 시간 전달
 * 경기 영상 기반 선수 기록 등록 및 클립 연결 백엔드 API 구조 개편
+* 경기 영상 기반 선수 기록 등록 프론트 연동
+* `PlayerRecordPage` 조회 전용화
+* 클립 없이 선수 기록 신규 생성·기존 기록 수정
+* 팀·선수 개인 분석 클립 기반 선수 기록 이벤트 연결
+* 독립 선수 기록 이벤트 등록·수정·삭제 프론트 제거
+* 선수 기록 등록 패널 PC·모바일 반응형 적용
 
 ---
 
@@ -282,6 +287,7 @@ docs/29_match_video_bookmark_requirements.md
 
 ```text
 docs/15_player_record_requirements_final.md
+docs/30_player_record_registration_frontend_integration_requirements.md
 ```
 
 ### 화면 책임
@@ -507,98 +513,110 @@ value
 
 ---
 
-## 17. 현재 작업 상태
 
-현재 백엔드 작업 브랜치는 다음과 같다.
+## 17. 선수 기록 프론트 연동 완료 내용
+
+상세 완료 문서는 다음과 같다.
 
 ```text
-player-record-registration-redesign-api
+docs/30_player_record_registration_frontend_integration_requirements.md
 ```
 
-경기 영상 기반 선수 기록 등록 및 클립 연결 백엔드 API 개편과 수동 테스트는 완료됐다.
+완료된 핵심 내용은 다음과 같다.
 
-현재 단계는 다음 작업이다.
-
-1. 최종 요구사항과 정책 문서 커밋
-2. 백엔드 PR 생성
-3. 백엔드 PR을 `main`에 병합
-4. 최신 `main`에서 선수 기록 프론트 연동 브랜치 생성
-5. 프론트 구현 시작
+1. `PlayerRecordPage`를 검색·목록·상세·이벤트 조회 전용으로 변경
+2. 선수 기록 등록·수정·삭제 UI 제거
+3. 독립 이벤트 등록·수정·삭제 UI와 API 함수 제거
+4. `MatchVideoPage`에 `PlayerRecordEditorPanel` 연결
+5. 분석 모드를 `player-record-create`로 변경
+6. 경기와 선수 기준 기존 기록 조회
+7. 기록이 없으면 모든 값을 0으로 표시
+8. 0~255 범위 카운터 UI 구현
+9. 기존 기록 유무에 따라 POST·PATCH 분기
+10. 팀 분석 클립 연결 등록
+11. 선수 개인 분석 클립 연결 등록
+12. 개인 클립 대상 선수 읽기 전용 표시
+13. 클립 연결 요청에서 이벤트 시간과 `value` 제거
+14. 동일 클립·동일 이벤트 유형 중복 오류 메시지 처리
+15. COACH·ANALYST 관리 UI 표시와 PLAYER 미표시
+16. PC·모바일 반응형 스타일 적용
+17. 대시보드·모바일 홈·북마크 진입 경로 동기화
 
 ---
 
-## 18. 다음 프론트 작업
+## 18. 선수 기록 프론트 테스트 완료 내용
 
-다음 작업명은 다음과 같다.
+사용자가 다음 항목을 실제로 정상 확인했다.
 
-```text
-경기 영상 기반 선수 기록 등록 프론트 연동
-```
+### 빌드·화면
 
-권장 이슈 제목은 다음과 같다.
+* `npm run build` 정상 완료
+* TypeScript 오류 없음
+* 브라우저와 개발 서버 콘솔 오류 없음
+* PC·모바일 반응형 표시 정상
 
-```text
-경기 영상 기반 선수 기록 등록 프론트 연동
-```
+### 클립 없이 등록
 
-권장 브랜치는 다음과 같다.
+* 기존 기록이 없는 선수의 모든 값 0 표시
+* 신규 선수 기록 POST 저장
+* 기존 선수 기록 PATCH 수정
+* 선수 재선택 시 저장값과 메모 재조회
+* 최소 0, 최대 255 카운터 제한
+* 저장 중 입력과 버튼 비활성화
+* 클립 없이 등록 시 이벤트·클립 연결 데이터 미생성
+
+### 팀 분석 클립 연결
+
+* READY 팀 분석 클립 정상 연결
+* 요청에서 이벤트 시간과 `value` 제외
+* 선수 요약 기록 증가
+* 이벤트·연결 클립 상세 조회
+* 같은 클립·같은 유형 `409 Conflict` 처리
+* 중복 후 선택값과 메모 유지
+* 같은 클립·다른 유형 등록 허용
+* 다른 선수 대상 같은 클립·같은 유형 중복 차단
+
+### 선수 개인 분석 클립 연결
+
+* READY 선수 개인 분석 클립 정상 연결
+* 대상 선수 읽기 전용 표시
+* 요청 `playerId`와 클립 대상 선수 일치
+* 요청에서 이벤트 시간과 `value` 제외
+* 선수 요약 기록 증가
+* 이벤트·연결 클립 상세 조회
+* 같은 클립·같은 유형 중복 처리
+* 같은 클립·다른 유형 등록 허용
+* 기존 선수 기록이 없는 선수 자동 생성
+
+### 권한·회귀
+
+* COACH·ANALYST 등록 UI와 API 정상
+* PLAYER 등록 UI 미표시와 관리 API 차단
+* 경기 영상 북마크 회귀 테스트 완료
+* 팀 분석 클립 회귀 테스트 완료
+* 선수 개인 분석 클립 회귀 테스트 완료
+* `PlayerRecordPage` 조회 기능 정상
+
+---
+
+## 19. 현재 작업 상태
+
+현재 작업 브랜치는 다음과 같다.
 
 ```text
 feature/player-record-registration-redesign-frontend
 ```
 
-백엔드 PR이 `main`에 병합된 후 최신 `main`에서 브랜치를 생성한다.
+경기 영상 기반 선수 기록 등록 프론트 구현과 테스트는 완료됐다.
 
-주요 구현 범위는 다음과 같다.
+현재 단계는 다음과 같다.
 
-1. `PlayerRecordPage`를 조회 전용으로 변경
-2. 선수 기록 등록·수정·삭제 UI 제거
-3. 독립 이벤트 등록·수정·삭제 UI 제거
-4. `MatchVideoPage` 버튼명을 `선수 기록 등록`으로 변경
-5. 분석 모드명 정리
-6. 기존 선수 기록 조회
-7. 기록이 없으면 모든 값 0 표시
-8. 기록 카운터 UI 구현
-9. 기존 기록 유무에 따라 생성·수정 API 분기
-10. 팀 분석 클립과 이벤트 유형 연결
-11. 선수 개인 분석 클립과 이벤트 유형 연결
-12. 이벤트 시간과 `value` 입력 UI 제거
-13. 동일 클립·동일 유형 중복 메시지 표시
-14. 기존 북마크와 분석 클립 기능 회귀 테스트
+1. 최종 요구사항과 정책 문서 커밋
+2. 프론트 브랜치 push
+3. 프론트 PR 생성
+4. PR을 `main`에 병합
 
----
-
-## 19. 다음 프론트 채팅에 필요한 파일
-
-다음 파일을 우선 확인하거나 업로드한다.
-
-```text
-docs/15_player_record_requirements_final.md
-docs/29_match_video_bookmark_requirements.md
-docs/00_current_backend_policy.md
-docs/00_current_frontend_policy.md
-docs/00_project_context_for_chatgpt.md
-
-frontend/src/pages/PlayerRecordPage.tsx
-frontend/src/pages/MatchVideoPage.tsx
-frontend/src/components/PlayerRecordEditorPanel.tsx
-frontend/src/components/PlayerRecordEventEditorPanel.tsx
-frontend/src/types/playerRecord.ts
-frontend/src/types/playerRecordEvent.ts
-frontend/src/api/playerRecordApi.ts
-frontend/src/api/playerRecordEventApi.ts
-frontend/src/constants/routes.ts
-frontend/src/App.tsx
-frontend/src/App.css
-
-backend/src/main/java/com/soccer/platform/controller/PlayerRecordController.java
-backend/src/main/java/com/soccer/platform/controller/PlayerRecordEventController.java
-backend/src/main/java/com/soccer/platform/dto/playerrecord/
-backend/src/main/java/com/soccer/platform/dto/playerrecordevent/
-backend/src/main/java/com/soccer/platform/common/exception/ErrorCode.java
-```
-
-실제 파일명과 경로가 다르면 현재 `main` 소스 기준으로 맞춘다.
+현재 다음 기능은 확정되지 않았다.
 
 ---
 
@@ -619,18 +637,12 @@ backend/src/main/java/com/soccer/platform/common/exception/ErrorCode.java
 
 ## 21. 브랜치 운영 주의사항
 
-현재 백엔드 브랜치:
-
-```text
-player-record-registration-redesign-api
-```
-
-다음 프론트 브랜치:
+이번 프론트 작업 브랜치는 다음과 같다.
 
 ```text
 feature/player-record-registration-redesign-frontend
 ```
 
-프론트 브랜치는 백엔드 PR이 `main`에 병합된 후 최신 `main`에서 생성한다.
+백엔드 API 개편 브랜치와 프론트 연동 브랜치는 서로 다른 이슈와 브랜치로 분리했다.
 
-백엔드와 프론트 작업은 서로 다른 이슈와 브랜치로 분리한다.
+다음 기능 브랜치는 현재 기능 PR을 `main`에 병합하고 다음 작업이 확정된 후 최신 `main`에서 생성한다.
