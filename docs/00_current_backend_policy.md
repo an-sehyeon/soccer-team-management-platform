@@ -2,190 +2,170 @@
 
 ## 1. 문서 목적
 
-이 문서는 축구팀 영상분석 플랫폼의 최신 백엔드 정책을 요약한다.
+이 문서는 축구팀 영상분석 플랫폼의 최신 백엔드 구현 상태와 확정된 목표 정책을 요약한다.
 
-새 채팅에서 백엔드 기능을 이어서 구현하거나 프론트 연동 전에 백엔드 API를 확인할 때 이 문서를 우선 참고한다.
+새 채팅에서 백엔드 작업을 시작할 때 다음 순서로 참고한다.
 
-상세 정책은 기능별 요구사항 문서와 실제 소스 코드를 기준으로 확인한다.
+1. 현재 채팅의 최신 사용자 결정
+2. `docs/31_video_editor_v1_requirements.md`
+3. 이 문서
+4. 기능별 요구사항 문서
+5. 실제 GitHub `main` 소스와 `soccer_platform.sql`
 
-선수 기록 관련 최신 상세 문서는 다음과 같다.
+현재 로컬 소스와 GitHub `main`은 `video-editor-backend-foundation` 브랜치 생성 시점에 동일하다. 실제 클래스명, API 주소, DTO 필드명, Entity 필드명과 Repository 메서드는 GitHub `main` 소스를 직접 확인해 사용한다.
+
+경기 영상 편집기 v1의 최신 상세 요구사항은 다음 문서를 기준으로 한다.
+
+```text
+docs/31_video_editor_v1_requirements.md
+```
+
+선수 기록과 북마크 최신 상세 문서는 다음과 같다.
 
 ```text
 docs/15_player_record_requirements_final.md
-docs/30_player_record_registration_frontend_integration_requirements.md
-```
-
-경기 영상 북마크 관련 최신 상세 문서는 다음과 같다.
-
-```text
 docs/29_match_video_bookmark_requirements.md
 ```
 
-경기 영상 기반 선수 기록 등록 프론트 연동도 완료됐다. 이번 프론트 작업에서는 백엔드 Controller, DTO, Entity, DB 구조를 변경하지 않았다.
-
 ---
 
-## 2. 기술 스택
+## 2. 현재 작업 상태
 
-* Java
-* Spring Boot
-* Gradle
-* Spring Security
-* JPA
-* MySQL
-* IntelliJ IDEA
-* JWT 인증
-* 로컬 파일 저장소
-* ffprobe 기반 영상 길이 추출
-* FFmpeg 기반 클립 파일 생성
-* Spring `@Async` 기반 비동기 파일 생성
-
----
-
-## 3. 인증 정책
-
-* 회원가입과 로그인 기능은 구현되어 있다.
-* 로그인 성공 시 JWT Access Token을 발급한다.
-* 인증 후 `CustomUserPrincipal`에서 다음 값을 사용한다.
+현재 작업은 경기 영상 편집기 전체 구현이 아니라 백엔드 기반 구조 개편이다.
 
 ```text
-memberId
-memberRole
-isAdmin
+작업명: 경기 영상 편집기 v1 백엔드 기반 구조 개편
+브랜치: video-editor-backend-foundation
+상태: 요구사항 확정 완료, 구현 전
 ```
 
-* 주요 API는 인증된 사용자만 접근할 수 있다.
-* 회원가입과 로그인 API만 `permitAll` 대상이다.
-* 권한 검증은 프론트가 아니라 반드시 백엔드에서 처리한다.
-* `isAdmin = true`만으로 선수 기록이나 영상 관리 권한을 부여하지 않는다.
+이번 브랜치의 우선 범위는 다음과 같다.
+
+- 기존 경기 영상·팀 클립·선수 클립 Entity와 Enum 분석
+- DRAFT, QUEUED 상태를 수용할 상태 모델 개편
+- 초 단위 클립 시간을 밀리초 단위로 전환할 DB 방향 확정
+- 원본 영상 FPS·해상도·오디오 메타데이터 확장
+- 렌더링 요청·시작·완료 시각과 실패 사유 기반 추가
+- COACH·ANALYST 영상 도메인 권한 동일화
+- PLAYER의 READY 전용 조회 보장
+- 기존 API와 기존 데이터의 호환·마이그레이션 방향 확정
+
+이번 브랜치에서 자동 저장, 잠금, 스냅샷, 렌더링 실행 전체, 인증 스트리밍 전체와 프론트 편집기를 한 번에 구현하지 않는다.
 
 ---
 
-## 4. 역할 정책
+## 3. 기술 스택
+
+- Java
+- Spring Boot
+- Gradle
+- Spring Security
+- JPA
+- MySQL
+- JWT 인증
+- 로컬 파일 저장소
+- ffprobe
+- FFmpeg
+- 현재 Spring `@Async` 기반 비동기 처리
+
+현재 비동기 생성 구조는 후속 공용 렌더링 대기열로 개편할 대상이다. 기존 구현을 확인하지 않고 즉시 제거하지 않는다.
+
+---
+
+## 4. 인증과 권한 검증 원칙
+
+- 주요 API는 인증된 사용자만 접근한다.
+- 회원가입과 로그인 API만 공개한다.
+- 권한 검증은 반드시 백엔드에서 수행한다.
+- 프론트 버튼 숨김은 보안 기준이 아니다.
+- `isAdmin = true`만으로 영상 또는 선수 기록 관리 권한을 부여하지 않는다.
+- 선수 본인 조회는 로그인한 `memberId`와 대상 선수의 회원 ID를 검증한다.
+- 파일 URL 또는 스트리밍 식별자를 직접 입력해도 권한 검증을 통과해야 한다.
+
+---
+
+## 5. 역할 정책
 
 ### COACH
 
-* 스케줄 등록·조회·수정·삭제
-* 공지사항 등록·조회·수정·삭제
-* 경기 영상 업로드·조회·수정·삭제
-* 팀 분석 클립 등록·조회·수정·삭제
-* 선수 개인 분석 클립 등록·조회·수정·삭제
-* 드로잉 등록·조회·수정·삭제
-* 선수 개인 분석 클립 조회 기록 확인
-* 경기 영상 기준 선수 기록 등록·갱신
-* 분석 클립 연결 선수 기록 이벤트 등록
-* 전체 선수 기록과 이벤트 조회
-* 본인 영상 북마크 등록·조회·수정·삭제
+- 스케줄 등록·조회·수정·삭제
+- 공지사항 등록·조회·수정·삭제
+- 경기 원본 영상 등록·조회·수정·삭제·복구
+- 팀 분석 클립 등록·조회·수정·삭제
+- 선수 개인 분석 클립 등록·조회·수정·삭제
+- 드로잉·텍스트·정지·줌 편집
+- DRAFT, 스냅샷, 편집 잠금 관리
+- 개별·일괄 렌더링과 FAILED 재시도
+- 편집 잠금 강제 해제
+- 선수 기록 등록·갱신과 이벤트 연결
+- 전체 선수 기록과 이벤트 조회
+- 본인 북마크 관리
 
 ### ANALYST
 
-* 스케줄과 공지사항 조회
-* 경기 영상 업로드·조회·수정
-* 팀 분석 클립 등록·조회·수정
-* 선수 개인 분석 클립 등록·조회·수정
-* 드로잉 등록·조회·수정
-* 선수 개인 분석 클립 조회 기록 확인
-* 경기 영상 기준 선수 기록 등록·갱신
-* 분석 클립 연결 선수 기록 이벤트 등록
-* 전체 선수 기록과 이벤트 조회
-* 본인 영상 북마크 등록·조회·수정·삭제
+스케줄과 공지사항은 조회만 가능하다.
 
-영상과 분석 클립의 삭제 권한은 기본적으로 없다.
+영상 도메인에서는 COACH와 동일한 전체 권한을 가진다.
 
-북마크는 개인 임시 작업 데이터이므로 본인 북마크 삭제를 허용한다.
+- 경기 원본 영상 등록·조회·수정·삭제·복구
+- 팀 분석 클립 등록·조회·수정·삭제
+- 선수 개인 분석 클립 등록·조회·수정·삭제
+- 드로잉·텍스트·정지·줌 편집
+- DRAFT, 스냅샷, 편집 잠금 관리
+- 개별·일괄 렌더링과 FAILED 재시도
+- 편집 잠금 강제 해제
+- 선수 기록 등록·갱신과 이벤트 연결
+- 전체 선수 기록과 이벤트 조회
+- 본인 북마크 관리
+
+기존 문서의 “ANALYST는 영상과 클립 삭제 불가” 정책은 경기 영상 편집기 v1에서 폐기한다.
 
 ### PLAYER
 
-* 스케줄 조회
-* 공지사항 조회
-* 경기 원본 영상 조회
-* READY 팀 분석 클립 조회
-* 본인 선수 개인 분석 클립 조회
-* 본인 드로잉 조회
-* 본인 선수 개인 분석 클립 조회 기록 생성·갱신
-* 본인 선수 기록 조회
-* 본인 선수 기록 이벤트 조회
+- 스케줄 조회
+- 공지사항 조회
+- 접근 가능한 경기 원본 영상 조회
+- READY 팀 분석 클립 조회
+- 본인의 READY 선수 개인 분석 클립 조회
+- 본인 선수 기록과 이벤트 조회
+- 본인 선수 개인 분석 클립 조회 기록 생성·갱신
 
-선수 기록 등록·수정과 영상 북마크 관리 API에는 접근할 수 없다.
+다음 상태의 클립은 조회할 수 없다.
 
----
+```text
+DRAFT
+QUEUED
+PROCESSING
+FAILED
+```
 
-## 5. 권한 검증 원칙
-
-* 권한 검증은 Service 또는 Validator 계층에서 처리한다.
-* 프론트에서 버튼을 숨겨도 백엔드 검증은 유지한다.
-* `isAdmin = true`만으로 영상, 클립, 선수 기록 관리 권한을 부여하지 않는다.
-* 선수 본인 조회는 로그인한 `memberId`를 기준으로 제한한다.
-* 사용자 소유 데이터는 로그인 사용자 ID를 함께 검증한다.
-* 선수 기록 관리 권한은 `COACH`, `ANALYST` 역할에만 부여한다.
-* `memberRole = PLAYER`, `isAdmin = true`인 사용자도 선수 기록 관리 API에 접근할 수 없다.
+영상 편집, 렌더링, 북마크 관리와 선수 기록 쓰기 API에는 접근할 수 없다.
 
 ---
 
 ## 6. API 주소 정책
 
-역할과 목적이 API 주소에 드러나야 한다.
+역할과 목적이 주소에 드러나야 한다.
 
 ```text
 공통 조회: /api/{resources}
 관리용: /api/management/{resources}
-지도자 전용: /api/coach/{resources}
 선수 본인: /api/player/me/{resources}
 관리자: /api/admin/{resources}
 ```
 
-주요 예시는 다음과 같다.
+기존 영상 삭제 API에 `/api/coach/**` 주소가 남아 있을 수 있다. 이번 기반 구조 작업에서는 실제 Controller, SecurityConfig와 프론트 호출부를 확인한 뒤 다음 중 하나를 선택한다.
 
-```http
-GET    /api/match-videos
-POST   /api/management/match-videos
-DELETE /api/coach/match-videos/{matchVideoId}
+1. `/api/management/**`로 이동하고 COACH·ANALYST를 허용
+2. 기존 주소를 임시 유지하되 서비스 권한을 COACH·ANALYST로 확장
 
-GET    /api/team-analysis-clips
-POST   /api/management/team-analysis-clips/with-drawings
-PUT    /api/management/team-analysis-clips/{teamClipId}/with-drawings
-DELETE /api/coach/team-analysis-clips/{teamClipId}
-
-GET    /api/management/player-analysis-clips
-GET    /api/player/me/player-analysis-clips
-DELETE /api/coach/player-analysis-clips/{playerClipId}
-
-GET    /api/management/player-records
-GET    /api/management/player-records/{recordId}
-POST   /api/management/player-records
-PATCH  /api/management/player-records/{recordId}
-
-POST   /api/management/player-record-events/with-clip-link
-GET    /api/management/player-records/{recordId}/events
-GET    /api/management/player-record-events/{eventId}
-GET    /api/player/me/player-records/{recordId}/events
-GET    /api/player/me/player-record-events/{eventId}
-
-POST   /api/management/video-bookmarks
-GET    /api/management/video-bookmarks
-PATCH  /api/management/video-bookmarks/{bookmarkId}
-DELETE /api/management/video-bookmarks/{bookmarkId}
-```
-
-다음 독립 선수 기록 이벤트 쓰기 API는 제거됐다.
-
-```http
-POST   /api/management/player-record-events
-PATCH  /api/management/player-record-events/{eventId}
-DELETE /api/management/player-record-events/{eventId}
-```
-
-선수 기록 이벤트는 분석 클립 연결 API를 통해서만 신규 생성한다.
-
-새 API를 만들기 전 기존 Controller와 주소 체계를 먼저 확인한다.
+주소를 확인하기 전에 임의로 변경하지 않는다. 신규 영상 관리 API는 가능하면 `/api/management/**`를 사용한다.
 
 ---
 
 ## 7. DB 기본 정책
 
-현재 서비스는 단일 팀 기준이다.
-
-초기 구조에서는 별도 `team` 테이블을 사용하지 않는다.
+현재 단일 팀 서비스이므로 별도 `team` 테이블을 사용하지 않는다.
 
 주요 테이블은 다음과 같다.
 
@@ -205,547 +185,260 @@ player_record_event_clip
 video_bookmark
 ```
 
-삭제는 기본적으로 소프트 삭제를 사용한다.
+현재 SQL과 Entity가 기준이며 정확한 신규 컬럼명은 실제 소스 검토 후 확정한다.
+
+경기 영상 편집기 v1에서 검토할 주요 변경은 다음과 같다.
+
+### `game_video_upload`
+
+- 삭제 시각
+- 영상 길이 밀리초
+- 가로·세로 해상도
+- 정확한 FPS 정보
+- 오디오 존재 여부
+- 필요한 경우 회전 정보
+
+### `team_video_clip`, `player_video_clip`
+
+- DRAFT, QUEUED 상태
+- 시작·종료 밀리초
+- 렌더링 요청·시작·완료 시각
+- 렌더링 실패 사유
+- 결과 파일 메타데이터
+- 썸네일 정보
+- 렌더링 프로필 버전
+- 편집 버전
+
+기존 초 단위 데이터의 기본 마이그레이션 원칙은 `기존 초 × 1000 = 밀리초`다.
+
+---
+
+## 8. 경기 원본 영상 정책
+
+- 실제 MP4 파일을 업로드한다.
+- DB에는 파일 자체가 아니라 저장 식별자, 경로와 메타데이터를 저장한다.
+- ffprobe로 길이, 해상도, FPS, 오디오 정보를 추출한다.
+- 신규 편집 데이터의 기준 시간은 밀리초다.
+- 원본 영상은 팀·선수 클립, 선수 기록, 북마크와 편집기의 기준 데이터다.
+
+### 삭제
+
+원본 영상 삭제는 소프트 삭제한다.
 
 ```text
-is_deleted = false
-→ 활성 데이터
-
 is_deleted = true
-→ 삭제 데이터
+deleted_at = 현재 시각
 ```
 
-일반 목록과 상세 조회에서는 삭제 데이터를 제외한다.
-
-선수 기록 API 개편에서는 신규 테이블과 신규 컬럼을 추가하지 않았다.
+- 원본 MP4는 10일간 유지한다.
+- 10일 이내이며 실제 파일이 존재할 때만 복구한다.
+- 원본 북마크는 삭제 후 복구하지 않는다.
+- 연결된 팀 분석 클립은 소프트 삭제한다.
+- 팀 클립 MP4는 즉시 물리 삭제 대상으로 등록한다.
+- READY 선수 개인 클립은 유지한다.
+- 10일 후 원본 MP4와 연결된 DRAFT·FAILED 선수 개인 클립을 영구 삭제한다.
+- QUEUED 또는 PROCESSING 클립이 있으면 원본 삭제를 차단한다.
+- 삭제 이력 메타데이터는 선수 클립과 기록의 출처 확인을 위해 유지한다.
 
 ---
 
-## 8. 경기 영상 정책
+## 9. 분석 클립 상태 정책
 
-* 경기 원본 영상은 실제 `.mp4` 업로드 방식으로 관리한다.
-* 로컬 저장 경로는 `backend/uploads/match-videos`를 사용한다.
-* DB에는 파일 자체가 아니라 URL과 메타데이터를 저장한다.
-* 영상 길이는 `ffprobe`로 추출한다.
-* 영상 길이는 `game_video_upload.duration_sec`에 저장한다.
-* 경기 영상 삭제는 소프트 삭제다.
-* 초기 MVP에서는 실제 영상 파일을 바로 삭제하지 않는다.
+경기 영상 편집기 v1의 canonical 상태는 다음 다섯 개다.
 
-경기 영상은 다음 기능의 기준 데이터다.
+```text
+DRAFT
+QUEUED
+PROCESSING
+READY
+FAILED
+```
 
-* 팀 분석 클립 생성
-* 선수 개인 분석 클립 생성
-* 선수 기록 등록
-* 분석 클립 연결 기록 검증
-* 영상 북마크
-* 영상 편집기
+상태 흐름:
+
+```text
+DRAFT → QUEUED → PROCESSING → READY
+DRAFT → QUEUED → PROCESSING → FAILED
+FAILED → QUEUED → PROCESSING → READY 또는 FAILED
+```
+
+- 신규 클립은 DRAFT로 저장한다.
+- QUEUED와 PROCESSING에서는 편집·삭제·재시도를 차단한다.
+- READY는 완성 MP4를 재생한다.
+- READY에서 직접 수정 가능한 항목은 제목, 클립 유형, 코멘트다.
+- 구간, 대상 선수, 드로잉, 정지와 줌을 변경하려면 새 DRAFT를 생성한다.
+- FAILED는 편집 원본을 유지하고 재편집·재렌더링·삭제를 허용한다.
+- 기존 `UPLOADING` 상태의 실제 사용 여부를 확인한 뒤 제거 또는 변환한다.
+
+일반 PLAYER 조회 Repository 또는 Service는 READY 조건을 반드시 포함한다.
 
 ---
 
-## 9. 팀 분석 클립 정책
+## 10. 편집 데이터 정책
 
-* 팀 분석 클립은 실제 mp4 파일을 비동기로 생성한다.
-* 생성 직후 `PROCESSING` 상태로 저장한다.
-* FFmpeg 성공 시 URL을 저장하고 `READY`로 변경한다.
-* 실패 시 `FAILED`로 변경한다.
-* 일반 목록 조회는 `READY`만 반환한다.
-* 팀 분석 클립과 드로잉은 통합 생성·수정 API를 사용한다.
-* 시작·종료 시간이 변경되거나 삭제되면 해당 클립의 활성 북마크를 일괄 소프트 삭제한다.
-* 제목, 코멘트, 유형, 드로잉만 변경된 경우 북마크를 유지한다.
-* 선수 기록 이벤트에는 `READY` 상태의 팀 분석 클립만 연결할 수 있다.
-
----
-
-## 10. 선수 개인 분석 클립 정책
-
-* 선수 개인 분석 클립은 실제 mp4 파일을 비동기로 생성한다.
-* 생성 직후 `PROCESSING` 상태로 저장한다.
-* FFmpeg 성공 시 URL을 저장하고 `READY`로 변경한다.
-* 실패 시 `FAILED`로 변경한다.
-* 선수는 본인 클립만 조회할 수 있다.
-* 관리자는 관리용 API로 전체 선수 클립을 조회한다.
-* 선수 개인 분석 클립과 드로잉은 통합 생성·수정 API를 사용한다.
-* 시작·종료 시간, 원본 경기 영상이 변경되거나 삭제되면 해당 클립의 활성 북마크를 일괄 소프트 삭제한다.
-* 제목, 코멘트, 유형, 대상 선수, 드로잉만 변경된 경우 북마크를 유지한다.
-* 선수 기록 이벤트에는 `READY` 상태의 선수 개인 분석 클립만 연결할 수 있다.
-* 선수 개인 분석 클립 연결 시 요청 `playerId`만 신뢰하지 않고 실제 클립 대상 선수와 일치하는지 검증한다.
+- 하나의 클립은 하나의 연속 구간만 가진다.
+- 원본 구간 최소 1초, 최종 결과 최대 15분이다.
+- 클립, 드로잉과 효과 시간은 밀리초로 관리한다.
+- 드로잉 좌표는 레터박스를 제외한 영상 표시 영역 기준 정규화 좌표로 저장한다.
+- 드로잉, 텍스트, 화면 정지와 줌은 READY MP4에 합성한다.
+- READY 이후에도 최종 편집 원본 데이터는 보관한다.
+- READY 완료 후 복구 스냅샷과 임시 파일은 정리한다.
+- 영상 내용을 변경할 때 기존 READY 행을 직접 덮어쓰지 않는다.
 
 ---
 
-## 11. 영상 북마크 최신 정책
+## 11. 렌더링 정책
 
-북마크는 `COACH`, `ANALYST` 개인의 임시 분석 작업 데이터다.
+팀 클립과 선수 클립은 하나의 공용 FIFO 대기열을 사용한다.
 
-* `PLAYER` 접근 불가
-* 사용자 본인 북마크만 조회·수정·삭제
-* 같은 시간 중복 북마크 허용
-* 정수 초 저장
-* 제목 필수, 메모 선택
-* 경기 원본 영상, 팀 분석 클립, 선수 개인 분석 클립 지원
-* `READY` 소스만 사용
-* 삭제는 소프트 삭제
+- 동시 실행 기본값: 2
+- 대기 기준: 렌더링 요청 시각 오름차순
+- 일괄 요청: DRAFT·FAILED 최대 20개
+- 일괄 요청 내부 정렬: `created_at ASC`, 동일하면 클립 ID ASC
+- 각 클립은 독립적으로 성공·실패한다.
+- 실제 PROCESSING 시작 후 60분 타임아웃
+- 자동 재시도 없음
 
-소스 조합은 다음과 같다.
+실패 사유:
 
 ```text
-원본 영상
-upload_id 있음, 두 clip_id null
-
-팀 분석 클립
-upload_id 있음, team_clip_id 있음, player_clip_id null
-
-선수 개인 분석 클립
-upload_id 있음, team_clip_id null, player_clip_id 있음
+RENDER_ERROR
+TIMEOUT
+SERVER_RESTART
 ```
+
+서버 시작 시 남은 PROCESSING은 SERVER_RESTART 사유로 FAILED 처리하고, QUEUED는 요청 순서대로 재등록한다.
 
 ---
 
-## 12. 선수 기록 화면 책임 정책
+## 12. 결과 영상 규격
 
-* `PlayerRecordPage`는 검색·목록·상세 조회 전용으로 사용한다.
-* 선수 기록 등록과 갱신은 `MatchVideoPage`에서 진행한다.
-* 독립 선수 기록 이벤트 등록·수정·삭제 기능은 제공하지 않는다.
-* 선수 기록 이벤트는 분석 클립 연결 등록을 통해서만 생성한다.
+```text
+컨테이너: MP4
+영상: H.264(libx264)
+오디오: AAC
+픽셀 포맷: yuv420p
+화질: CRF 21
+preset: medium
+최대 해상도: 1080p
+최대 FPS: 60
+faststart: 적용
+키프레임 간격: 약 2초
+```
+
+- 원본보다 해상도와 FPS를 높이지 않는다.
+- 화면 비율을 유지한다.
+- 원본에 오디오가 없으면 무음 트랙을 만들지 않는다.
+- 정지 구간의 오디오는 무음 처리한다.
+- 설정값은 외부 설정으로 관리한다.
+- READY 전 ffprobe 기반 결과 파일을 검증한다.
+- 썸네일은 결과 1초 지점에서 JPEG로 생성하고 실패해도 MP4가 정상이라면 READY를 유지한다.
 
 ---
 
-## 13. 클립 없이 선수 기록 등록 정책
+## 13. 영상 제공 보안 정책
 
-클립 없이 선수 기록을 저장할 때는 기존 선수 기록 API를 조합해 사용한다.
+현재 `/uploads/**` 직접 접근은 기존 MVP 호환을 위한 임시 구조다.
 
-```http
-GET   /api/management/player-records?uploadId={uploadId}&playerId={playerId}
-POST  /api/management/player-records
-PATCH /api/management/player-records/{recordId}
-```
+목표 정책:
 
-처리 방식은 다음과 같다.
+- 운영 환경에서 `/uploads/**`를 `permitAll`로 공개하지 않는다.
+- 백엔드 인증 스트리밍 API 또는 짧은 만료 재생 토큰을 사용한다.
+- HTTP Range 요청을 지원한다.
+- 팀 클립은 팀 사용자 권한을 검증한다.
+- 선수 개인 클립은 대상 선수 본인 또는 COACH·ANALYST인지 검증한다.
+- 내부 파일 경로를 API 응답에 노출하지 않는다.
 
-1. 현재 경기와 선수의 활성 `player_record`를 조회한다.
-2. 기존 기록이 없으면 생성 API를 호출한다.
-3. 기존 기록이 있으면 조회된 `recordId`로 수정 API를 호출한다.
-4. 한 요청으로 전체 요약 기록을 저장한다.
-5. `player_record_event`, `player_record_event_clip`은 생성하지 않는다.
-
-백엔드는 동일 경기·동일 선수의 활성 기록 중복 생성을 계속 차단한다.
-
-### 수치 검증
-
-각 선수 기록 수치는 다음 범위만 검증한다.
-
-```text
-최소값: 0
-최대값: 255
-```
-
-현재는 다음 추가 정합성 검증을 적용하지 않는다.
-
-```text
-shotsOnTarget <= shots
-successfulPasses <= passes
-successfulDribbles <= dribbles
-```
+클라우드 스토리지와 CDN 도입 시 Signed URL 방식으로 교체할 수 있게 저장소 계층을 분리한다.
 
 ---
 
-## 14. 분석 클립 연결 선수 기록 정책
+## 14. 클립 삭제 정책
 
-클립 연결 이벤트 등록 API는 다음과 같다.
-
-```http
-POST /api/management/player-record-events/with-clip-link
-```
-
-한 요청에서 다음을 하나씩 선택한다.
-
-* 대상 선수 한 명
-* 이벤트 유형 한 개
-* 팀 분석 클립 또는 선수 개인 분석 클립 한 개
-* 이벤트 메모 선택 입력
-
-클립 연결 요청 DTO에는 다음 필드를 사용한다.
+DRAFT, FAILED, READY 클립은 즉시 영구 삭제한다.
 
 ```text
-uploadId
-playerId
-eventType
-eventMemo
-clipSourceType
-teamClipId
-playerClipId
+이 클립을 영구 삭제하시겠습니까?
+
+삭제하면 클립 영상과 모든 관련 데이터가 즉시 영구 삭제되며 복구할 수 없습니다.
 ```
 
-다음 필드는 요청 DTO에서 제거됐다.
+삭제 대상:
 
-```text
-eventStartTimeSec
-eventEndTimeSec
-value
-```
+- 클립 DB 행
+- MP4와 썸네일
+- 최종 편집 데이터
+- 드로잉·텍스트·정지·줌
+- 북마크와 조회 기록
+- 선수 기록 이벤트와 클립 연결
+- 스냅샷과 임시 파일
 
-삭제된 독립 요청 DTO는 다음과 같다.
+유지 대상:
 
-```text
-CreatePlayerRecordEventRequestDTO
-UpdatePlayerRecordEventRequestDTO
-```
+- 선수 기록 이벤트 자체
+- 선수 경기 기록
+- 선수 누적 통계
+
+DB 트랜잭션에서 파일 정리 작업을 기록하고 커밋 후 삭제를 시도한다. 실패한 파일 삭제는 재시도하고 로그를 남긴다.
 
 ---
 
-## 15. 클립 연결 조합 정책
+## 15. 선수 기록 연결 정책
 
-### 팀 분석 클립
+최신 상세 정책은 `docs/15_player_record_requirements_final.md`를 기준으로 한다.
 
-```text
-clipSourceType = TEAM_ANALYSIS
-teamClipId 필수
-playerClipId = null
-```
-
-### 선수 개인 분석 클립
-
-```text
-clipSourceType = PLAYER_ANALYSIS
-teamClipId = null
-playerClipId 필수
-```
-
-두 클립 ID가 모두 존재하거나 모두 없는 요청은 차단한다.
+- 선수 기록 이벤트에는 READY 클립만 연결한다.
+- 클립 연결 당시 구간을 이벤트 스냅샷으로 저장한다.
+- 신규 canonical 시간은 밀리초로 전환한다.
+- 기존 초 단위 값은 마이그레이션 시 1000을 곱해 보존한다.
+- 직접 클립 영구 삭제 시 `player_record_event_clip` 연결을 삭제한다.
+- 이벤트와 선수 기록·누적 통계는 유지한다.
+- 원본 삭제로 팀 클립이 소프트 삭제된 경우 연결 이력은 유지하고 `해당 클립이 삭제되었습니다`를 표시한다.
+- 클립 삭제로 선수 기록 수치를 자동 차감하지 않는다.
 
 ---
 
-## 16. 이벤트 시간과 value 정책
+## 16. 북마크 정책
 
-클립 연결 요청에서는 이벤트 시간과 `value`를 받지 않는다.
+최신 상세 정책은 `docs/29_match_video_bookmark_requirements.md`를 기준으로 한다.
 
-백엔드가 선택한 클립에서 다음 값을 조회해 저장한다.
-
-```text
-eventStartTimeSec = clip.startTimeSec
-eventEndTimeSec = clip.endTimeSec
-value = 1
-```
-
-다음 DB 컬럼은 유지한다.
-
-```text
-player_record_event.event_start_time_sec
-player_record_event.event_end_time_sec
-player_record_event.value
-```
-
-이벤트 시간은 등록 당시 선택한 클립 구간의 스냅샷이다.
-
-클립 시간이 나중에 수정돼도 기존 이벤트의 시간 스냅샷은 변경하지 않는다.
-
-실제 영상 재생은 연결된 현재 클립을 기준으로 한다.
+- COACH·ANALYST 본인 북마크만 관리한다.
+- PLAYER는 접근할 수 없다.
+- READY 영상만 북마크할 수 있다.
+- 경기 영상 편집기 v1에서는 북마크 시간도 밀리초 canonical 저장을 사용한다.
+- 기존 초 단위 값은 1000을 곱해 마이그레이션한다.
+- 직접 클립 영구 삭제 시 관련 북마크를 영구 삭제한다.
+- 원본 삭제 시 원본 북마크는 소프트 삭제하고 복구하지 않는다.
+- 원본 삭제로 제거되는 팀 클립 북마크도 복구하지 않는다.
 
 ---
 
-## 17. 선수 기록 이벤트 중복 정책
+## 17. 구현 순서
 
-중복 기준은 다음과 같다.
+`video-editor-backend-foundation` 브랜치에서는 다음 순서로 진행한다.
 
-```text
-clip_source_type
-+ 실제 clip_id
-+ event_type
-+ 활성 player_record_event
-+ 활성 player_record_event_clip
-```
+1. GitHub `main`의 Entity와 Enum 확인
+2. Repository와 `soccer_platform.sql` 확인
+3. Service와 Validator의 상태·권한 흐름 확인
+4. Controller와 DTO 호환성 확인
+5. FFmpeg, 저장소와 비동기 처리 구조 확인
+6. SecurityConfig와 ErrorCode 확인
+7. 현재 구조와 31번 요구사항 충돌 목록 작성
+8. DB·Entity 변경안과 마이그레이션 순서 확정
+9. 사용자가 진행한다고 하면 코드 구현
+10. 기존 API 회귀 테스트
 
-허용 예시는 다음과 같다.
-
-```text
-클립 10 + SHOT
-클립 10 + PASS
-```
-
-차단 예시는 다음과 같다.
-
-```text
-클립 10 + SHOT
-클립 10 + SHOT
-```
-
-중복 기준에는 기록 대상 선수를 포함하지 않는다.
-
-같은 팀 분석 클립에 같은 이벤트 유형이 이미 연결돼 있다면 다른 선수 대상으로 다시 연결하는 요청도 차단한다.
-
-중복 시 다음 응답을 사용한다.
-
-```text
-HTTP 409 Conflict
-선택한 클립에는 해당 선수 기록 유형이 이미 연결되어 있습니다.
-```
+기존 API를 즉시 제거하지 않는다. 신규 구조를 추가한 뒤 프론트 전환이 끝날 때까지 필요한 호환성을 유지한다.
 
 ---
 
-## 18. 동시 중복 요청 방지 정책
-
-같은 클립과 같은 이벤트 유형의 동시 요청을 막기 위해 선택한 분석 클립을 비관적 쓰기 잠금으로 조회한다.
-
-```text
-PESSIMISTIC_WRITE
-```
-
-처리 순서는 다음과 같다.
-
-1. 선택한 클립 잠금 조회
-2. 클립 상태와 관계 검증
-3. 동일 클립·동일 이벤트 유형 중복 조회
-4. 중복이 없으면 이벤트 저장
-5. 클립 연결 저장
-6. 선수 요약 기록 갱신
-7. 트랜잭션 종료 후 잠금 해제
-
-동일 요청이 동시에 들어오면 한 요청만 성공하고 다른 요청은 `409 Conflict`를 반환해야 한다.
-
----
-
-## 19. 기존 player_record 자동 생성 정책
-
-클립 연결 이벤트 등록 시 현재 경기와 선수의 활성 `player_record`를 조회한다.
-
-기존 기록이 있으면 해당 기록을 사용한다.
-
-기존 기록이 없으면 모든 수치를 0으로 생성한다.
-
-```text
-minutesPlayed = 0
-goals = 0
-assists = 0
-shots = 0
-shotsOnTarget = 0
-passes = 0
-successfulPasses = 0
-dribbles = 0
-successfulDribbles = 0
-tackles = 0
-interceptions = 0
-clearances = 0
-saves = 0
-yellowCards = 0
-redCards = 0
-memo = null
-```
-
-이후 선택한 이벤트 유형에 해당하는 선수 요약 수치를 반영한다.
-
----
-
-## 20. 선수 기록 요약 반영 정책
-
-클립 연결 이벤트 등록 시 기본 반영은 다음과 같다.
-
-```text
-GOAL → goals +1
-ASSIST → assists +1
-SHOT → shots +1
-SHOT_ON_TARGET → shots +1, shots_on_target +1
-PASS → passes +1
-SUCCESSFUL_PASS → passes +1, successful_passes +1
-DRIBBLE → dribbles +1
-SUCCESSFUL_DRIBBLE → dribbles +1, successful_dribbles +1
-TACKLE → tackles +1
-INTERCEPTION → interceptions +1
-CLEARANCE → clearances +1
-SAVE → saves +1
-YELLOW_CARD → yellow_cards +1
-RED_CARD → red_cards +1
-ETC → 요약 수치 변경 없음
-```
-
-요약 기록 수치가 255를 초과하면 저장하지 않고 전체 트랜잭션을 롤백한다.
-
----
-
-## 21. 트랜잭션 정책
-
-다음 작업은 하나의 트랜잭션으로 처리한다.
-
-```text
-클립 잠금 조회
-클립 검증
-중복 검증
-player_record 조회 또는 생성
-player_record_event 저장
-player_record_event_clip 저장
-player_record 요약 수치 갱신
-```
-
-중간에 예외가 발생하면 다음 데이터가 모두 저장 이전 상태로 롤백돼야 한다.
-
-```text
-player_record
-player_record_event
-player_record_event_clip
-```
-
-이벤트와 연결을 먼저 저장한 뒤 요약 수치 반영에서 예외가 발생하더라도 이벤트와 연결 데이터는 DB에 남지 않는다.
-
----
-
-## 22. 선수 기록 이벤트 조회 정책
-
-### 관리용
-
-```http
-GET /api/management/player-records/{recordId}/events
-GET /api/management/player-record-events/{eventId}
-```
-
-`COACH`, `ANALYST`만 접근할 수 있다.
-
-### 선수 본인
-
-```http
-GET /api/player/me/player-records/{recordId}/events
-GET /api/player/me/player-record-events/{eventId}
-```
-
-로그인 선수와 기록 대상 선수가 일치할 때만 조회할 수 있다.
-
-다른 선수의 기록 또는 이벤트 조회 요청은 차단한다.
-
----
-
-## 23. 주요 예외 정책
-
-### READY가 아닌 클립
-
-```text
-HTTP 400 Bad Request
-READY 상태의 분석 클립만 선수 기록에 연결할 수 있습니다.
-```
-
-### 동일 클립·동일 이벤트 유형 중복
-
-```text
-HTTP 409 Conflict
-선택한 클립에는 해당 선수 기록 유형이 이미 연결되어 있습니다.
-```
-
-### 경기 영상 불일치
-
-```text
-HTTP 400 Bad Request
-선수 기록 이벤트와 연결할 클립의 경기 영상이 일치하지 않습니다.
-```
-
-### 개인 클립 대상 선수 불일치
-
-```text
-HTTP 400 Bad Request
-선수 기록 대상 선수와 선수 개인 분석 클립 대상 선수가 일치하지 않습니다.
-```
-
-### 잘못된 클립 출처 조합
-
-```text
-HTTP 400 Bad Request
-선수 기록 이벤트 클립 출처 유형이 올바르지 않습니다.
-```
-
-### 선수 기록 관리 권한 없음
-
-```text
-HTTP 403 Forbidden
-선수 기록 이벤트 관리 권한이 없습니다.
-```
-
----
-
-## 24. 조회 기록 정책
-
-선수가 본인 선수 개인 분석 클립 상세를 조회하면 조회 기록을 생성하거나 갱신한다.
-
-```text
-최초 조회
-firstViewedAt 저장
-lastViewedAt 저장
-viewCount = 1
-
-재조회
-lastViewedAt 갱신
-viewCount + 1
-```
-
-관리용 상세 조회는 선수 조회 기록에 반영하지 않는다.
-
----
-
-## 25. 영상 파일 접근 정책
-
-현재 MVP는 `/uploads/**` 직접 접근을 사용한다.
-
-운영 전에는 다음 중 하나로 전환해야 한다.
-
-* 권한 검증 스트리밍 API
-* Signed URL
-* CDN과 서명 URL
-
-개인 분석 클립은 반드시 백엔드 권한 검증을 거쳐야 한다.
-
----
-
-## 26. 예외 처리 정책
-
-* 공통 예외는 `ErrorCode`와 `CustomException` 구조를 사용한다.
-* 사용자 메시지는 구체적이어야 한다.
-* HTTP status, path, 내부 스택은 프론트에 그대로 노출하지 않는다.
-* 검증 실패는 가능한 한 저장 전에 처리한다.
-* 연관 데이터 저장은 하나의 트랜잭션으로 묶는다.
-* DB 저장 범위 초과 등의 저장 중 예외도 전체 트랜잭션을 롤백한다.
-
----
-
-## 27. 선수 기록 API 개편 완료 상태
-
-경기 영상 기반 선수 기록 등록 및 클립 연결 API 구조 개편은 완료됐다.
-
-완료된 항목은 다음과 같다.
-
-1. 클립 연결 요청 DTO에서 시간과 `value` 제거
-2. 팀·선수 클립 시간 자동 조회
-3. `value = 1` 고정
-4. READY 상태 검증
-5. 경기 영상 일치 검증
-6. 선수 개인 클립 대상 선수 일치 검증
-7. 동일 클립·동일 이벤트 유형 중복 차단
-8. 비관적 잠금으로 동시 중복 요청 방지
-9. 기존 `player_record`가 없을 때 자동 생성
-10. 선택 유형의 선수 요약 수치 반영
-11. 독립 이벤트 등록·수정·삭제 API 제거
-12. 관리용·선수 본인 이벤트 조회 API 유지
-13. 트랜잭션 롤백 검증
-14. 클립 시간 스냅샷 유지 검증
-15. 신규 DB 테이블과 컬럼 추가 없음
-
-사용자가 백엔드 서버 실행과 주요 API 테스트를 모두 정상 확인했다.
-
----
-
-
-## 28. 선수 기록 프론트 연동 완료 상태
-
-경기 영상 기반 선수 기록 등록 프론트 연동이 완료됐다.
-
-프론트에서 완료된 주요 항목은 다음과 같다.
-
-1. `PlayerRecordPage` 조회 전용화
-2. `MatchVideoPage` 기준 선수 기록 등록
-3. 기존 기록 조회 후 생성·수정 API 분기
-4. 팀 분석 클립 연결 등록
-5. 선수 개인 분석 클립 연결 등록
-6. 클립 연결 요청에서 이벤트 시간과 `value` 제거
-7. 독립 이벤트 등록·수정·삭제 프론트 호출 제거
-8. 동일 클립·동일 이벤트 유형 중복 메시지 처리
-9. COACH·ANALYST 등록 UI 제공
-10. PLAYER 등록 UI 미표시와 백엔드 접근 차단 확인
-
-이번 프론트 연동으로 변경된 백엔드 파일, API, DTO, Entity, 테이블은 없다.
-
-기존 백엔드 선수 기록 정책과 권한·트랜잭션·중복 검증 정책을 그대로 유지한다.
-
-현재 다음 작업은 확정되지 않았다.
+## 18. 완료 후 갱신 대상
+
+구현 결과가 확정되면 다음을 실제 코드 기준으로 다시 갱신한다.
+
+- 이 문서
+- `00_current_frontend_policy.md`
+- `00_project_context_for_chatgpt.md`
+- `docs/31_video_editor_v1_requirements.md`
+- `soccer_platform.sql`
+- 변경된 기능별 요구사항 문서
